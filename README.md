@@ -17,12 +17,12 @@ Losing ends the run, roguelike style; each run starts fresh.
 
 ## Tech
 
-- **Engine:** Unity 6.3 LTS (`ProjectSettings/ProjectVersion.txt` pins 6000.3.16f1; any newer 6.3 LTS patch is fine).
+- **Engine:** Unity 6.6 (`ProjectSettings/ProjectVersion.txt` pins 6000.6.0f1).
 - **Language:** C#
 
 ## Getting started
 
-1. Install Unity 6.3 LTS through Unity Hub.
+1. Install Unity 6000.6.0f1 through Unity Hub.
 2. In Unity Hub choose **Add > Add project from disk** and select this folder.
 3. On first open Unity generates the remaining `ProjectSettings/`, `Packages/` and `.meta` files. Commit those so everyone shares the same setup.
 
