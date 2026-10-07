@@ -1,16 +1,19 @@
+/* Battle screen. Shared storybook styles (fonts, buttons, cards) come from UnitBuilder.uss. */
+
 .battle-root {
     flex-grow: 1;
     flex-direction: column;
-    color: rgb(43, 31, 26);
-    font-size: 14px;
+    padding: 10px;
 }
 
 .battle-top {
     flex-direction: row;
     align-items: center;
-    border-bottom-width: 1px;
-    border-bottom-color: rgb(160, 132, 88);
-    background-color: rgba(234, 217, 176, 0.97);
+    padding: 10px 18px;
+}
+
+.battle-top .title {
+    font-size: 28px;
 }
 
 .battle-middle {
@@ -21,21 +24,18 @@
 
 .battle-hint {
     position: absolute;
-    bottom: 10px;
+    bottom: 12px;
     color: rgb(242, 228, 196);
-    background-color: rgba(43, 31, 26, 0.8);
-    border-radius: 12px;
-    padding: 4px 12px;
-    font-size: 13px;
+    background-color: rgba(43, 31, 26, 0.82);
+    border-radius: 14px;
+    padding: 4px 16px;
+    font-size: 15px;
+    -unity-font-definition: url("../Fonts/AlegreyaSans-MediumItalic_SDF.asset");
 }
 
 .battle-bottom {
     flex-shrink: 0;
-    border-top-width: 1px;
-    border-top-color: rgb(160, 132, 88);
-    background-color: rgba(234, 217, 176, 0.97);
-    padding-top: 10px;
-    padding-bottom: 8px;
+    padding: 12px 18px 10px 18px;
 }
 
 .battle-cards {
@@ -46,32 +46,25 @@
 }
 
 .battle-card {
-    width: 230px;
+    width: 330px;
     margin-right: 8px;
-    padding: 8px 10px;
-    align-items: flex-start;
+    padding: 10px 12px;
 }
 
 .battle-result {
-    min-width: 340px;
-    max-width: 440px;
+    min-width: 380px;
+    max-width: 480px;
     align-items: center;
-    border-radius: 10px;
-    border-width: 1px;
-    border-color: rgb(107, 74, 47);
-    background-color: rgb(234, 217, 176);
-    padding: 24px;
+    padding: 28px 32px;
 }
 
 .battle-result-title {
-    font-size: 36px;
-    -unity-font-style: bold;
-    margin-bottom: 8px;
+    font-size: 56px;
+    -unity-font-definition: url("../Fonts/AlegreyaSC-ExtraBold_SDF.asset");
+    margin-bottom: 6px;
 }
 
-Button.big {
+.battle-result .sub {
     font-size: 16px;
-    padding: 8px 18px;
-    -unity-font-style: bold;
+    -unity-text-align: middle-center;
 }
-

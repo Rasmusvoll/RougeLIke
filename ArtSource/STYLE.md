@@ -64,3 +64,33 @@ All 3D art uses `RougeLike/Toon` (`Assets/Art/Shaders/Toon.shader`).
   faceted meshes.
 - Unit parts keep their origin at the attach point; bodies keep their origin on the ground. Slot
   positions live in the body definition assets, so reshape bodies around them.
+
+## UI
+
+The screens are parchment boards with ink frames laid on a dark Pine table. Buttons are inked
+wooden plaques (Wood by default, Eyrie Blue for the main action, Brick for destructive actions,
+Ochre for "go" and for the selected choice). Content shows as cards with an icon in a sunken socket;
+the card's trim colour is the rarity: Common Parchment Dark, Uncommon Moss, Rare Eyrie Blue,
+Epic Plum, Legendary Ochre. Energy is shown as Ochre pips.
+
+- **Styles:** `Assets/UI/Builder/UnitBuilder.uss` holds the shared look (both screens load it);
+  `Assets/UI/Battle/Battle.uss` adds the battle layout. Reusable pieces (sockets, stat chips, pips,
+  section headings) are built by `Assets/Scripts/UI/StoryUI.cs`.
+- **UI art:** `RougeLike > UI > Draw UI Art` redraws the plaques, panels, cards, pips, frame and
+  stat icons into `Assets/UI/Textures` from code (`Assets/Scripts/Editor/UiArt/UiArtGenerator.cs`).
+  Change the palette there, not in an image editor.
+- **Content icons:** `RougeLike > UI > Render Content Icons` photographs every body and part model
+  with the toon shader (thicker 12 px ink at render size, cropped to fit) into `Assets/Art/Icons`
+  and draws a medallion for every buff from its main stat. It assigns each definition's `icon`.
+  Re-run it after adding content or changing a model.
+
+### Fonts
+
+| Use | Font | Source | Licence |
+|-----|------|--------|---------|
+| Titles, headings, buttons | Alegreya SC (ExtraBold, Bold) | [google/fonts](https://github.com/google/fonts/tree/main/ofl/alegreyasc), by Huerta Tipográfica | SIL Open Font License 1.1 |
+| Body text, numbers, hints | Alegreya Sans (Medium, Bold, Medium Italic) | [google/fonts](https://github.com/google/fonts/tree/main/ofl/alegreyasans), by Huerta Tipográfica | SIL Open Font License 1.1 |
+
+The licence texts sit next to the fonts in `Assets/UI/Fonts` (`OFL-AlegreyaSC.txt`,
+`OFL-AlegreyaSans.txt`). UI Toolkit uses the dynamic SDF font assets (`*_SDF.asset`) made from the
+`.ttf` files.

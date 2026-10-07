@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Units.PartDefinition
   id: part_pincer
   displayName: Pincer
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: f61299df12d44c540bbf4a2ce0c8e975, type: 3}
   rarity: 1
   prefab: {fileID: 919132149155446097, guid: dd0d0e33f93b8314182b5b1bb95036a3, type: 3}
   fitsSlot: 1

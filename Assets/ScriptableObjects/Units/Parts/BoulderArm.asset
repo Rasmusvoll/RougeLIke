@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Units.PartDefinition
   id: part_boulder_arm
   displayName: Boulder Arm
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 5c268b1913b7c8d4984f5581b890ef57, type: 3}
   rarity: 2
   prefab: {fileID: 8659235300747829535, guid: bdb851343ed99224b834b2443abafe7e, type: 3}
   fitsSlot: 1

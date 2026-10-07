@@ -1,3 +1,4 @@
+using RougeLike.UI;
 using RougeLike.Units;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -57,10 +58,11 @@ namespace RougeLike.Battle
             infoLabel = L("", "sub");
             titles.Add(infoLabel);
             speedButton = new Button(CycleSpeed);
-            top.Add(speedButton);
+            speedButton.AddToClassList("big");
             startButton = new Button(battle.StartBattle) { text = "Start battle" };
-            startButton.AddToClassList("primary");
+            startButton.AddToClassList("gold");
             startButton.AddToClassList("big");
+            top.Add(speedButton);
             top.Add(startButton);
 
             var middle = Add(screen, "battle-middle");
@@ -85,12 +87,16 @@ namespace RougeLike.Battle
             var barHeader = Add(bottomBar);
             barHeader.style.flexDirection = FlexDirection.Row;
             barHeader.style.alignItems = Align.Center;
-            var section = L("YOUR ARMY", "section", "grow");
-            section.style.marginTop = 0;
-            barHeader.Add(section);
+            var section = StoryUI.Section(barHeader, "Your army");
+            section.parent.style.flexGrow = 1;
+            section.parent.style.marginTop = 0;
+            section.parent.style.marginBottom = 0;
+            section.parent.style.marginRight = 8;
             autoButton = new Button(battle.AutoPlace) { text = "Place all" };
+            autoButton.AddToClassList("small");
             barHeader.Add(autoButton);
             clearButton = new Button(battle.ClearPlacement) { text = "Clear" };
+            clearButton.AddToClassList("small");
             barHeader.Add(clearButton);
             cardRow = Add(bottomBar, "battle-cards");
         }
@@ -149,10 +155,12 @@ namespace RougeLike.Battle
                 bool placed = battle.PlacedUnit(i) != null;
 
                 var card = Add(cardRow, "row", "battle-card");
+                card.EnableInClassList("clickable", canField && !placed);
                 card.EnableInClassList("dim", placed || !canField);
                 card.EnableInClassList("selected", placed);
+                StoryUI.Socket(card, body != null ? body.icon : null, "big");
                 var text = Add(card, "grow");
-                text.Add(new Label(bp.name));
+                text.Add(L(bp.name, "name"));
                 if (!canField)
                 {
                     text.Add(L("Can't fight: invalid build", "warn"));
@@ -160,7 +168,13 @@ namespace RougeLike.Battle
                 }
                 var stats = UnitAssembler.ComputeStats(bp, buffs, db);
                 text.Add(L($"{body?.displayName} · {(UnitAssembler.CollectTags(bp, db).Contains("ranged") ? "ranged" : "melee")}", "sub"));
-                text.Add(L($"HP {stats.Get(StatType.MaxHealth):0} · ATK {stats.Get(StatType.Attack):0} · DEF {stats.Get(StatType.Defense):0} · SPD {stats.Get(StatType.Speed):0.#}", "sub"));
+                var statLine = Add(text, "chips");
+                foreach (var s in new[] { StatType.MaxHealth, StatType.Attack, StatType.Defense, StatType.Speed })
+                {
+                    var chip = Add(statLine, "stat-chip");
+                    StoryUI.StatIcon(chip, s);
+                    chip.Add(L(StoryUI.Format(stats.Get(s)), "stat-chip-text"));
+                }
                 text.Add(L(placed ? "On the field" : "Drag onto the field", placed ? "up" : "hint"));
                 if (!placed) card.RegisterCallback<PointerDownEvent>(e => BeginDragFromRoster(index, e));
             }
@@ -241,19 +255,8 @@ namespace RougeLike.Battle
 
         // Helpers
 
-        static VisualElement Add(VisualElement parent, params string[] classes)
-        {
-            var e = new VisualElement();
-            foreach (var c in classes) e.AddToClassList(c);
-            parent.Add(e);
-            return e;
-        }
+        static VisualElement Add(VisualElement parent, params string[] classes) => StoryUI.Add(parent, classes);
 
-        static Label L(string text, params string[] classes)
-        {
-            var l = new Label(text);
-            foreach (var c in classes) l.AddToClassList(c);
-            return l;
-        }
+        static Label L(string text, params string[] classes) => StoryUI.L(text, classes);
     }
 }

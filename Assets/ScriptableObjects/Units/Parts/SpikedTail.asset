@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Units.PartDefinition
   id: part_spiked_tail
   displayName: Spiked Tail
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: bb936fe6e1eea4c4fbb04d7aeb4f0bab, type: 3}
   rarity: 1
   prefab: {fileID: 919132149155446097, guid: a2f871e11cedab94ca5e221eecbcc3cd, type: 3}
   fitsSlot: 4

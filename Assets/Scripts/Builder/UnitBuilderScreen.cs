@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using RougeLike.UI;
 using RougeLike.Units;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -23,8 +24,8 @@ namespace RougeLike.Builder
         BuilderSession session;
         public BuilderSession Session => session;
 
-        VisualElement root, previewArea, unitList, bodyList, buffList, slotList, partList, statsRow, energyFill;
-        Label energyLabel, partsTitle, messageLabel, unitTitle;
+        VisualElement root, previewArea, unitList, bodyList, buffList, slotList, partList, statsRow, energyRow;
+        Label partsTitle, messageLabel, unitTitle;
         TextField nameField;
         VisualElement bodySwitch;
         Button deleteButton, battleButton;
@@ -66,42 +67,49 @@ namespace RougeLike.Builder
             var screen = Add(root, "root");
 
             // Left: units, bodies, run buffs.
-            var left = Add(screen, "panel", "side");
+            var left = Add(Add(screen, "column", "side"), "panel", "board");
             left.Add(L("Unit Builder", "title"));
-            Section(left, "YOUR UNITS");
-            unitList = Add(left);
-            Section(left, "NEW UNIT FROM BODY");
-            bodyList = Add(left);
-            Section(left, "RUN BUFFS");
-            buffList = Add(left);
-            battleButton = new Button(GoToBattle) { text = $"Go to battle {RunState.BattlesWon + 1}" };
-            battleButton.AddToClassList("primary");
-            battleButton.style.marginLeft = 0;
-            battleButton.style.marginTop = 14;
-            battleButton.style.paddingTop = battleButton.style.paddingBottom = 8;
-            battleButton.style.fontSize = 16;
-            battleButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-            left.Add(battleButton);
+            var leftScroll = new ScrollView();
+            leftScroll.style.flexGrow = 1;
+            left.Add(leftScroll);
+            Section(leftScroll, "Your units");
+            unitList = Add(leftScroll);
+            Section(leftScroll, "New unit from body");
+            bodyList = Add(leftScroll);
+            Section(leftScroll, "Run buffs");
+            buffList = Add(leftScroll);
             if (Debug.isDebugBuild)
             {
-                Section(left, "DEBUG");
+                Section(leftScroll, "Debug");
                 var grant = new Button(GrantAllContent) { text = "Grant all content" };
+                grant.AddToClassList("small");
                 grant.style.marginLeft = 0;
-                left.Add(grant);
+                grant.style.alignSelf = Align.FlexStart;
+                leftScroll.Add(grant);
             }
+            battleButton = new Button(GoToBattle) { text = $"Go to battle {RunState.BattlesWon + 1}" };
+            battleButton.AddToClassList("primary");
+            battleButton.AddToClassList("big");
+            battleButton.style.marginLeft = 0;
+            battleButton.style.marginTop = 10;
+            left.Add(battleButton);
 
             // Middle: name and body, 3D preview, energy and stats.
             var center = Add(screen, "center");
-            var header = Add(center, "panel", "header");
+            var headerColumn = Add(center, "column");
+            headerColumn.style.paddingBottom = 0;
+            var header = Add(headerColumn, "panel", "header");
             unitTitle = L("", "title");
             unitTitle.style.marginBottom = 0;
-            unitTitle.style.marginRight = 12;
+            unitTitle.style.marginRight = 14;
             header.Add(unitTitle);
             nameField = new TextField { isDelayed = true };
             nameField.RegisterValueChangedCallback(e => session.Rename(e.newValue));
             header.Add(nameField);
-            bodySwitch = Add(header, "stats");
+            bodySwitch = Add(header, "hrow");
             bodySwitch.style.flexGrow = 1;
+            bodySwitch.style.flexWrap = Wrap.Wrap;
+            bodySwitch.style.marginTop = 6;
             deleteButton = new Button { text = "Delete unit" };
             deleteButton.AddToClassList("danger");
             deleteButton.clicked += () => Confirm("delete", session.DeleteCurrent);
@@ -113,24 +121,22 @@ namespace RougeLike.Builder
             previewArea.RegisterCallback<PointerMoveEvent>(OnPreviewPointerMove);
             previewArea.RegisterCallback<PointerUpEvent>(OnPreviewPointerUp);
 
-            var footer = Add(center, "panel", "footer");
-            energyLabel = new Label();
-            footer.Add(energyLabel);
-            var track = Add(footer, "energy-track");
-            energyFill = Add(track, "energy-fill");
+            var footerColumn = Add(center, "column");
+            footerColumn.style.paddingTop = 0;
+            var footer = Add(footerColumn, "panel", "footer");
+            energyRow = Add(footer, "energy-row");
             statsRow = Add(footer, "stats");
             messageLabel = L("", "error");
             footer.Add(messageLabel);
 
             // Right: slots and parts.
-            var right = Add(screen, "panel", "side-right");
+            var right = Add(Add(screen, "column", "side-right"), "panel", "board");
             var scroll = new ScrollView();
             scroll.style.flexGrow = 1;
             right.Add(scroll);
-            Section(scroll, "SLOTS");
+            Section(scroll, "Slots");
             slotList = Add(scroll);
-            partsTitle = L("", "section");
-            scroll.Add(partsTitle);
+            partsTitle = Section(scroll, "");
             partList = Add(scroll);
         }
 
@@ -170,10 +176,12 @@ namespace RougeLike.Builder
                 int index = i;
                 var bp = units[i];
                 var body = database.GetBody(bp.bodyId);
-                var row = Row(unitList, i == session.SelectedIndex);
+                var row = Row(unitList, i == session.SelectedIndex, true);
+                StoryUI.Socket(row, body != null ? body.icon : null);
                 var text = Add(row, "grow");
-                text.Add(new Label(bp.name));
-                text.Add(L($"{body?.displayName} · {UnitAssembler.EnergyUsed(bp, database)}/{body?.energy} energy · {bp.parts.Count} parts", "sub"));
+                text.Add(L(bp.name, "name"));
+                text.Add(L($"{body?.displayName} · {bp.parts.Count} parts", "sub"));
+                StoryUI.Pips(text, UnitAssembler.EnergyUsed(bp, database), body != null ? body.energy : 0);
                 row.RegisterCallback<ClickEvent>(_ => { ClearConfirm(); session.Select(index); });
             }
         }
@@ -184,12 +192,15 @@ namespace RougeLike.Builder
             foreach (var body in session.OwnedBodies)
             {
                 var row = Row(bodyList, false);
+                row.AddToClassList(StoryUI.RarityClass(body.rarity));
+                StoryUI.Socket(row, body.icon);
                 var text = Add(row, "grow");
-                text.Add(new Label(body.displayName));
+                text.Add(L(body.displayName, "name"));
                 text.Add(L($"{body.slots.Count} slots · {body.energy} energy", "sub"));
                 var id = body.id;
                 var add = new Button(() => { ClearConfirm(); session.NewUnit(id); }) { text = "+ New" };
                 add.AddToClassList("primary");
+                add.AddToClassList("small");
                 row.Add(add);
             }
         }
@@ -202,10 +213,12 @@ namespace RougeLike.Builder
             foreach (var buff in buffs)
             {
                 var row = Row(buffList, false);
+                row.AddToClassList(StoryUI.RarityClass(buff.rarity));
+                StoryUI.Socket(row, buff.icon, "", true);
                 var text = Add(row, "grow");
-                text.Add(new Label(buff.displayName));
-                var who = string.IsNullOrEmpty(buff.requiredTag) ? "all units" : $"units with a {buff.requiredTag} part";
-                text.Add(L($"{Describe(buff.modifiers)} for {who}", "sub"));
+                text.Add(L(buff.displayName, "name"));
+                StoryUI.StatChips(text, buff.modifiers);
+                text.Add(L(string.IsNullOrEmpty(buff.requiredTag) ? "All units" : $"Units with a {buff.requiredTag} part", "sub"));
             }
         }
 
@@ -218,11 +231,21 @@ namespace RougeLike.Builder
             {
                 var id = body.id;
                 bool current = id == bp.bodyId;
-                var b = new Button { text = body.displayName };
+                var b = new Button();
                 b.AddToClassList("chip");
                 if (current) b.AddToClassList("selected");
-                else if (bp.parts.Count > 0)
-                    SetConfirmLabel(b, "body:" + id, body.displayName, $"Swap to {body.displayName}? Parts are lost");
+                if (body.icon != null)
+                {
+                    var icon = Add(b, "chip-icon");
+                    icon.style.backgroundImage = new StyleBackground(body.icon);
+                }
+                var label = L(b, body.displayName);
+                if (!current && bp.parts.Count > 0)
+                {
+                    bool armed = pendingConfirm == "body:" + id;
+                    if (armed) label.text = $"Swap to {body.displayName}? Parts are lost";
+                    b.EnableInClassList("confirm", armed);
+                }
                 b.clicked += () =>
                 {
                     if (current) return;
@@ -244,23 +267,33 @@ namespace RougeLike.Builder
             {
                 var slotId = slot.slotId;
                 var part = database.GetPart(bp.GetPartIn(slotId));
-                var row = Row(slotList, slotId == session.SelectedSlotId);
+                var row = Row(slotList, slotId == session.SelectedSlotId, true);
+                if (part != null) row.AddToClassList(StoryUI.RarityClass(part.rarity));
+                var socket = StoryUI.Socket(row, part != null ? part.icon : null);
+                if (part == null) L(socket, "+", "socket-plus");
                 var text = Add(row, "grow");
-                text.Add(new Label(SlotName(slot)));
-                if (part != null) text.Add(L($"{part.displayName} · {Describe(part.modifiers)}", "sub"));
-                else text.Add(L($"Empty {slot.type} slot", "sub", "empty"));
+                text.Add(L(SlotName(slot), "name"));
+                if (part != null)
+                {
+                    text.Add(L(part.displayName, "sub"));
+                    StoryUI.StatChips(text, part.modifiers);
+                }
+                else text.Add(L($"Empty {slot.type.ToString().ToLowerInvariant()} slot", "sub", "empty"));
                 row.RegisterCallback<ClickEvent>(_ => { ClearConfirm(); session.SelectSlot(slotId); });
 
                 if (part != null)
                 {
-                    row.Add(L($"Cost {part.energyCost}", "cost"));
+                    var side = Add(row, "card-side");
+                    StoryUI.Pips(side, part.energyCost, part.energyCost);
                     var scrap = new Button { text = "Scrap" };
                     scrap.AddToClassList("danger");
+                    scrap.AddToClassList("small");
+                    scrap.style.marginTop = 6;
                     SetConfirmLabel(scrap, "scrap:" + slotId, "Scrap", "Destroy?");
                     scrap.clicked += () => Confirm("scrap:" + slotId, () => session.Scrap(slotId));
                     // Keep the button's click from also selecting the row.
                     scrap.RegisterCallback<ClickEvent>(e => e.StopPropagation());
-                    row.Add(scrap);
+                    side.Add(scrap);
                 }
             }
         }
@@ -270,24 +303,36 @@ namespace RougeLike.Builder
             partList.Clear();
             var bp = session.Current;
             var slot = session.CurrentBody?.GetSlot(session.SelectedSlotId);
-            partsTitle.text = slot != null ? $"PARTS FOR {SlotName(slot).ToUpperInvariant()}" : "ALL PARTS (PICK A SLOT TO EQUIP)";
+            partsTitle.text = slot != null ? $"Parts for {SlotName(slot)}" : "All parts · pick a slot";
 
             bool any = false;
             foreach (var (part, count) in session.Inventory(slot?.type))
             {
                 any = true;
                 var row = Row(partList, false);
+                row.AddToClassList(StoryUI.RarityClass(part.rarity));
+                row.style.alignItems = Align.FlexStart;
+                StoryUI.Socket(row, part.icon, "big");
                 var text = Add(row, "grow");
-                text.Add(new Label(part.displayName));
-                text.Add(L($"{part.fitsSlot} · {Describe(part.modifiers)}", "sub"));
-                row.Add(L($"Cost {part.energyCost}", "cost"));
-                row.Add(L($"×{count}", "count"));
+                var nameLine = Add(text, "hrow");
+                nameLine.Add(L(part.displayName, "name"));
+                nameLine.Add(L($"×{count}", "count"));
+                var typeLine = Add(text, "hrow");
+                typeLine.Add(L($"{part.fitsSlot} part · ", "sub"));
+                StoryUI.RarityLabel(typeLine, part.rarity);
+                StoryUI.StatChips(text, part.modifiers);
+
+                var side = Add(row, "card-side");
+                side.style.alignSelf = Align.Stretch;
+                StoryUI.Pips(side, part.energyCost, part.energyCost);
 
                 if (slot == null || bp == null) continue;
                 int energy = session.EnergyIfEquipped(slot.slotId, part);
                 var replaced = database.GetPart(bp.GetPartIn(slot.slotId));
                 var equip = new Button { text = replaced != null ? "Replace" : "Equip" };
                 equip.AddToClassList("primary");
+                equip.AddToClassList("small");
+                equip.style.marginTop = 6;
                 var slotId = slot.slotId;
                 var partId = part.id;
                 if (energy > session.EnergyMax)
@@ -300,39 +345,40 @@ namespace RougeLike.Builder
                     text.Add(L($"Destroys the equipped {replaced.displayName}", "warn"));
                 }
                 equip.clicked += () => { ClearConfirm(); session.Equip(slotId, partId); };
-                row.Add(equip);
+                side.Add(equip);
             }
             if (!any)
-                partList.Add(L(slot != null ? $"No {slot.type} parts left. Win battles to find more." : "No parts left.", "empty"));
+                partList.Add(L(slot != null ? $"No {slot.type.ToString().ToLowerInvariant()} parts left. Win battles to find more." : "No parts left.", "empty"));
         }
 
         void RefreshEnergyAndStats()
         {
             int used = session.EnergyUsed, max = session.EnergyMax;
-            energyLabel.text = session.Current != null ? $"Energy  {used} / {max}" : "";
-            energyFill.style.width = Length.Percent(max > 0 ? 100f * used / max : 0f);
-            energyFill.EnableInClassList("full", max > 0 && used >= max);
-
+            energyRow.Clear();
             statsRow.Clear();
             var body = session.CurrentBody;
-            if (body == null) return;
+            if (body == null || session.Current == null) return;
+
+            energyRow.Add(L("Energy", "energy-label"));
+            StoryUI.Pips(energyRow, used, max, true);
+            var count = L($"{used} / {max}", "energy-count");
+            count.EnableInClassList("down", used > max);
+            energyRow.Add(count);
+
             var stats = session.CurrentStats;
             foreach (StatType s in Enum.GetValues(typeof(StatType)))
             {
                 float value = stats.Get(s), baseValue = stats.GetBase(s);
                 var cell = Add(statsRow, "stat");
-                cell.Add(L(StatName(s), "sub"));
-                var line = Add(cell);
-                line.style.flexDirection = FlexDirection.Row;
+                StoryUI.StatIcon(cell, s, true);
+                var col = Add(cell);
+                col.Add(L(StoryUI.StatName(s), "sub"));
+                var line = Add(col, "hrow");
                 line.style.alignItems = Align.FlexEnd;
                 line.Add(L(Format(value), "stat-value"));
                 float delta = value - baseValue;
                 if (Mathf.Abs(delta) > 0.01f)
-                {
-                    var d = L($" {(delta > 0 ? "+" : "")}{Format(delta)}", delta > 0 ? "up" : "down");
-                    d.style.marginBottom = 3;
-                    line.Add(d);
-                }
+                    line.Add(L($"{(delta > 0 ? "+" : "")}{Format(delta)}", "stat-delta", delta > 0 ? "up" : "down"));
             }
         }
 
@@ -418,29 +464,21 @@ namespace RougeLike.Builder
             Refresh();
         }
 
-        static VisualElement Add(VisualElement parent, params string[] classes)
-        {
-            var e = new VisualElement();
-            foreach (var c in classes) e.AddToClassList(c);
-            parent.Add(e);
-            return e;
-        }
+        static VisualElement Add(VisualElement parent, params string[] classes) => StoryUI.Add(parent, classes);
 
-        static Label L(string text, params string[] classes)
-        {
-            var l = new Label(text);
-            foreach (var c in classes) l.AddToClassList(c);
-            return l;
-        }
+        static Label L(string text, params string[] classes) => StoryUI.L(text, classes);
 
-        static VisualElement Row(VisualElement parent, bool selected)
+        static Label L(VisualElement parent, string text, params string[] classes) => StoryUI.L(parent, text, classes);
+
+        static VisualElement Row(VisualElement parent, bool selected, bool clickable = false)
         {
             var row = Add(parent, "row");
             row.EnableInClassList("selected", selected);
+            row.EnableInClassList("clickable", clickable);
             return row;
         }
 
-        static void Section(VisualElement parent, string text) => parent.Add(L(text, "section"));
+        static Label Section(VisualElement parent, string text) => StoryUI.Section(parent, text);
 
         static string SlotName(SlotDefinition slot)
         {
@@ -451,26 +489,6 @@ namespace RougeLike.Builder
             return string.Join(" ", words);
         }
 
-        static string StatName(StatType s) => s switch
-        {
-            StatType.MaxHealth => "Health",
-            _ => s.ToString(),
-        };
-
-        static string Format(float v) => Mathf.Approximately(v, Mathf.Round(v)) ? Mathf.Round(v).ToString("0") : v.ToString("0.#");
-
-        static string Describe(List<StatModifier> mods)
-        {
-            if (mods == null || mods.Count == 0) return "no stat changes";
-            var parts = new List<string>();
-            foreach (var m in mods)
-            {
-                string sign = m.value >= 0 ? "+" : "";
-                parts.Add(m.op == ModifierOp.Flat
-                    ? $"{sign}{Format(m.value)} {StatName(m.stat)}"
-                    : $"{sign}{Format(m.value * 100f)}% {StatName(m.stat)}");
-            }
-            return string.Join(", ", parts);
-        }
+        static string Format(float v) => StoryUI.Format(v);
     }
 }

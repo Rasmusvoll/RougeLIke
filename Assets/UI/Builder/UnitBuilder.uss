@@ -1,95 +1,161 @@
-.root {
-    flex-grow: 1;
-    flex-direction: row;
+/* Storybook UI (ArtSource/STYLE.md): parchment boards with ink frames on a dark pine table,
+   inked wooden plaques for buttons, cards trimmed by rarity. Shared by the builder and battle
+   screens. Textures are drawn by RougeLike > UI > Draw UI Art; fonts are Alegreya (OFL). */
+
+/* Type */
+
+.root, .battle-root {
     color: rgb(43, 31, 26);
+    font-size: 16px;
+    -unity-font-definition: url("../Fonts/AlegreyaSans-Medium_SDF.asset");
+}
+
+.title {
+    font-size: 30px;
+    -unity-font-definition: url("../Fonts/AlegreyaSC-ExtraBold_SDF.asset");
+    margin-bottom: 6px;
+    color: rgb(43, 31, 26);
+}
+
+.section-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 14px;
+    margin-bottom: 6px;
+}
+
+.section {
+    font-size: 16px;
+    -unity-font-definition: url("../Fonts/AlegreyaSC-Bold_SDF.asset");
+    color: rgb(107, 74, 47);
+    letter-spacing: 1px;
+    margin-right: 8px;
+}
+
+.section-row .section {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.section-diamond {
+    width: 7px;
+    height: 7px;
+    rotate: 45deg;
+    background-color: rgb(194, 86, 43);
+    margin-right: 8px;
+    margin-left: 2px;
+}
+
+.section-rule {
+    flex-grow: 1;
+    height: 2px;
+    background-color: rgb(205, 181, 130);
+}
+
+.name {
+    font-size: 17px;
+    -unity-font-definition: url("../Fonts/AlegreyaSans-Bold_SDF.asset");
+}
+
+.sub {
+    font-size: 14px;
+    color: rgb(107, 74, 47);
+    white-space: normal;
+}
+
+.hint, .empty {
+    -unity-font-definition: url("../Fonts/AlegreyaSans-MediumItalic_SDF.asset");
+}
+
+.hint {
+    color: rgba(43, 31, 26, 0.65);
     font-size: 14px;
 }
 
-.panel {
-    background-color: rgb(234, 217, 176);
-    padding: 14px;
+.empty {
+    color: rgb(150, 125, 95);
 }
 
-.side {
-    width: 280px;
-    border-right-width: 1px;
-    border-right-color: rgb(160, 132, 88);
+.warn {
+    color: rgb(194, 86, 43);
+    font-size: 14px;
+    white-space: normal;
 }
 
-.side-right {
-    width: 360px;
-    border-left-width: 1px;
-    border-left-color: rgb(160, 132, 88);
+.error {
+    color: rgb(158, 59, 42);
+    margin-top: 6px;
+    -unity-font-definition: url("../Fonts/AlegreyaSans-Bold_SDF.asset");
 }
+
+.up { color: rgb(79, 107, 58); }
+.down { color: rgb(158, 59, 42); }
+
+/* Layout */
+
+.root {
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+.column {
+    background-color: rgb(47, 74, 51);
+    padding: 8px;
+}
+
+.side { width: 300px; padding-right: 0; }
+.side-right { width: 420px; padding-left: 0; }
 
 .center {
     flex-grow: 1;
     flex-direction: column;
 }
 
+.board {
+    flex-grow: 1;
+}
+
+.panel {
+    background-image: url("../Textures/panel_parchment.png");
+    -unity-slice-left: 20;
+    -unity-slice-right: 20;
+    -unity-slice-top: 20;
+    -unity-slice-bottom: 20;
+    padding: 16px 18px;
+}
+
 .header {
     flex-direction: row;
     align-items: center;
     flex-wrap: wrap;
-    border-bottom-width: 1px;
-    border-bottom-color: rgb(160, 132, 88);
+    padding: 10px 16px;
 }
 
 .footer {
-    border-top-width: 1px;
-    border-top-color: rgb(160, 132, 88);
+    padding: 12px 18px;
 }
 
 .preview {
     flex-grow: 1;
     justify-content: flex-end;
     align-items: center;
-    padding-bottom: 10px;
+    padding-bottom: 18px;
+    background-image: url("../Textures/frame_wood.png");
+    -unity-slice-left: 20;
+    -unity-slice-right: 20;
+    -unity-slice-top: 20;
+    -unity-slice-bottom: 20;
 }
 
-.hint {
-    color: rgba(43, 31, 26, 0.6);
-    font-size: 12px;
+.preview-gap {
+    background-color: rgb(47, 74, 51);
 }
 
-.title {
-    font-size: 18px;
-    -unity-font-style: bold;
-    margin-bottom: 8px;
-}
-
-.section {
-    font-size: 12px;
-    -unity-font-style: bold;
-    color: rgb(107, 74, 47);
-    margin-top: 14px;
-    margin-bottom: 6px;
-    letter-spacing: 1px;
-}
-
-.row {
-    flex-direction: row;
-    align-items: center;
-    min-height: 34px;
-    padding: 4px 8px;
-    margin-bottom: 4px;
-    border-radius: 6px;
-    background-color: rgb(242, 228, 196);
-    border-width: 2px;
-    border-color: rgb(205, 181, 130);
-}
-
-.row:hover {
-    border-color: rgb(107, 74, 47);
-}
-
-.row.selected {
-    border-color: rgb(194, 86, 43);
-    background-color: rgb(247, 222, 178);
-}
-
-.row.dim {
-    opacity: 0.45;
+.preview .hint {
+    color: rgb(242, 228, 196);
+    background-color: rgba(43, 31, 26, 0.75);
+    border-radius: 12px;
+    padding: 3px 14px;
 }
 
 .grow {
@@ -97,106 +163,140 @@
     flex-shrink: 1;
 }
 
-.sub {
-    font-size: 12px;
-    color: rgb(107, 74, 47);
+.hrow {
+    flex-direction: row;
+    align-items: center;
 }
 
-.empty {
-    color: rgb(150, 125, 95);
-    -unity-font-style: italic;
+/* Cards and rows */
+
+.row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    background-image: url("../Textures/card_common.png");
+    -unity-slice-left: 14;
+    -unity-slice-right: 14;
+    -unity-slice-top: 14;
+    -unity-slice-bottom: 14;
+    border-radius: 10px;
+    border-width: 0;
+    transition-property: translate, -unity-background-image-tint-color;
+    transition-duration: 0.08s;
+}
+
+.row.clickable:hover {
+    translate: 0 -1px;
+    -unity-background-image-tint-color: rgb(255, 250, 240);
+}
+
+.row.selected {
+    border-width: 3px;
+    border-color: rgb(194, 86, 43);
+    -unity-background-image-tint-color: rgb(255, 238, 205);
+}
+
+.row.dim { opacity: 0.5; }
+
+.card-common { background-image: url("../Textures/card_common.png"); }
+.card-uncommon { background-image: url("../Textures/card_uncommon.png"); }
+.card-rare { background-image: url("../Textures/card_rare.png"); }
+.card-epic { background-image: url("../Textures/card_epic.png"); }
+.card-legendary { background-image: url("../Textures/card_legendary.png"); }
+
+.socket {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    margin-right: 10px;
+    background-image: url("../Textures/icon_socket.png");
+    align-items: center;
+    justify-content: center;
+}
+
+.socket.big { width: 68px; height: 68px; }
+.socket.small { width: 36px; height: 36px; margin-right: 8px; }
+.socket.bare { background-image: none; }
+
+.socket-image {
+    width: 88%;
+    height: 88%;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.socket.bare .socket-image { width: 100%; height: 100%; }
+
+.socket-plus {
+    font-size: 26px;
+    color: rgba(107, 74, 47, 0.55);
+    -unity-font-definition: url("../Fonts/AlegreyaSans-Bold_SDF.asset");
+}
+
+.rarity {
+    font-size: 12px;
+    -unity-font-definition: url("../Fonts/AlegreyaSC-Bold_SDF.asset");
+    letter-spacing: 1px;
+}
+
+.rarity-common { color: rgb(150, 125, 95); }
+.rarity-uncommon { color: rgb(110, 125, 55); }
+.rarity-rare { color: rgb(63, 110, 148); }
+.rarity-epic { color: rgb(110, 74, 110); }
+.rarity-legendary { color: rgb(184, 128, 30); }
+
+.card-side {
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-left: 8px;
+    flex-shrink: 0;
 }
 
 .count {
-    -unity-font-style: bold;
-    margin-left: 6px;
-    margin-right: 6px;
-}
-
-.cost {
-    color: rgb(63, 110, 148);
-    margin-left: 6px;
-    margin-right: 6px;
-}
-
-.warn {
-    color: rgb(194, 86, 43);
-    font-size: 12px;
-}
-
-.error {
-    color: rgb(158, 59, 42);
-    margin-top: 6px;
-}
-
-Button {
-    margin: 0 0 0 6px;
-    padding: 4px 10px;
-    border-radius: 5px;
-    border-width: 0;
-    background-color: rgb(107, 74, 47);
+    -unity-font-definition: url("../Fonts/AlegreyaSans-Bold_SDF.asset");
+    font-size: 14px;
     color: rgb(242, 228, 196);
+    background-color: rgb(107, 74, 47);
+    border-radius: 9px;
+    padding: 0 7px;
+    margin-left: 6px;
 }
 
-Button:hover {
-    background-color: rgb(133, 95, 62);
+/* Stat chips and icons */
+
+.chips {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 3px;
 }
 
-Button:disabled {
-    opacity: 0.35;
+.stat-chip {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 10px;
 }
 
-Button.primary {
-    background-color: rgb(63, 110, 148);
+.stat-chip-text {
+    font-size: 14px;
+    -unity-font-definition: url("../Fonts/AlegreyaSans-Bold_SDF.asset");
 }
 
-Button.primary:hover {
-    background-color: rgb(80, 132, 172);
+.stat-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 3px;
+    flex-shrink: 0;
+    -unity-background-scale-mode: scale-to-fit;
 }
 
-Button.danger {
-    background-color: rgb(158, 59, 42);
-}
+.stat-icon.large { width: 26px; height: 26px; margin-right: 6px; }
 
-Button.danger:hover {
-    background-color: rgb(182, 74, 52);
-}
-
-Button.confirm {
-    background-color: rgb(194, 86, 43);
-}
-
-Button.chip {
-    margin: 0 6px 6px 0;
-}
-
-Button.chip.selected {
-    background-color: rgb(209, 154, 58);
-}
-
-TextField {
-    min-width: 200px;
-    margin-right: 12px;
-}
-
-.energy-track {
-    height: 14px;
-    border-radius: 7px;
-    background-color: rgb(205, 181, 130);
-    margin-top: 4px;
-    margin-bottom: 10px;
-    overflow: hidden;
-}
-
-.energy-fill {
-    height: 100%;
-    background-color: rgb(63, 110, 148);
-    border-radius: 7px;
-}
-
-.energy-fill.full {
-    background-color: rgb(209, 154, 58);
-}
+.stat-maxhealth { background-image: url("../Textures/Stats/stat_maxhealth.png"); }
+.stat-attack { background-image: url("../Textures/Stats/stat_attack.png"); }
+.stat-defense { background-image: url("../Textures/Stats/stat_defense.png"); }
+.stat-speed { background-image: url("../Textures/Stats/stat_speed.png"); }
+.stat-range { background-image: url("../Textures/Stats/stat_range.png"); }
 
 .stats {
     flex-direction: row;
@@ -204,31 +304,193 @@ TextField {
 }
 
 .stat {
+    flex-direction: row;
+    align-items: center;
     width: 20%;
-    min-width: 110px;
+    min-width: 120px;
     margin-bottom: 4px;
 }
 
 .stat-value {
-    font-size: 20px;
-    -unity-font-style: bold;
+    font-size: 24px;
+    -unity-font-definition: url("../Fonts/AlegreyaSans-Bold_SDF.asset");
 }
 
-.up {
-    color: rgb(79, 107, 58);
+.stat-delta {
+    font-size: 15px;
+    -unity-font-definition: url("../Fonts/AlegreyaSans-Bold_SDF.asset");
+    margin-left: 4px;
+    margin-bottom: 3px;
 }
 
-.down {
-    color: rgb(158, 59, 42);
+/* Energy pips */
+
+.pips {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.pip {
+    width: 14px;
+    height: 14px;
+    margin-left: 2px;
+    background-image: url("../Textures/pip_full.png");
+}
+
+.pip.empty { background-image: url("../Textures/pip_empty.png"); }
+.pip.over { -unity-background-image-tint-color: rgb(230, 120, 100); }
+.pips.large .pip { width: 22px; height: 22px; margin-left: 0; margin-right: 4px; }
+
+.energy-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.energy-label {
+    -unity-font-definition: url("../Fonts/AlegreyaSC-Bold_SDF.asset");
+    color: rgb(107, 74, 47);
+    font-size: 16px;
+    letter-spacing: 1px;
+    margin-right: 12px;
+}
+
+.energy-count {
+    -unity-font-definition: url("../Fonts/AlegreyaSans-Bold_SDF.asset");
+    font-size: 18px;
+    margin-left: 8px;
+}
+
+/* Buttons: inked plaques */
+
+Button {
+    margin: 0 0 0 6px;
+    padding: 5px 14px 7px 14px;
+    min-height: 32px;
+    border-width: 0;
+    border-radius: 0;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("../Textures/button_wood.png");
+    -unity-slice-left: 14;
+    -unity-slice-right: 14;
+    -unity-slice-top: 14;
+    -unity-slice-bottom: 14;
+    -unity-background-image-tint-color: rgb(238, 230, 220);
+    color: rgb(242, 228, 196);
+    font-size: 16px;
+    -unity-font-definition: url("../Fonts/AlegreyaSC-Bold_SDF.asset");
+    text-shadow: 0 1px 0 rgba(43, 31, 26, 0.55);
+    transition-property: translate, -unity-background-image-tint-color;
+    transition-duration: 0.06s;
+}
+
+Button:hover {
+    background-color: rgba(0, 0, 0, 0);
+    -unity-background-image-tint-color: rgb(255, 255, 255);
+    translate: 0 -1px;
+}
+
+Button:active {
+    background-color: rgba(0, 0, 0, 0);
+    -unity-background-image-tint-color: rgb(200, 188, 176);
+    translate: 0 2px;
+}
+
+Button:disabled {
+    opacity: 0.4;
+    translate: 0 0;
+}
+
+Button.primary { background-image: url("../Textures/button_blue.png"); }
+Button.danger { background-image: url("../Textures/button_red.png"); }
+Button.confirm { background-image: url("../Textures/button_ochre.png"); color: rgb(43, 31, 26); text-shadow: 0 1px 0 rgba(242, 228, 196, 0.5); }
+Button.gold { background-image: url("../Textures/button_ochre.png"); color: rgb(43, 31, 26); text-shadow: 0 1px 0 rgba(242, 228, 196, 0.5); }
+
+Button.small {
+    font-size: 14px;
+    min-height: 28px;
+    padding: 3px 10px 5px 10px;
+}
+
+Button.big {
+    font-size: 21px;
+    min-height: 46px;
+    padding: 8px 22px 10px 22px;
+}
+
+Button.chip {
+    margin: 0 6px 6px 0;
+    flex-direction: row;
+    align-items: center;
+    padding-left: 6px;
+    background-image: url("../Textures/button_parchment.png");
+    color: rgb(43, 31, 26);
+    text-shadow: 0 0 0 rgba(0, 0, 0, 0);
+}
+
+Button.chip.selected { background-image: url("../Textures/button_ochre.png"); }
+
+.chip-icon {
+    width: 26px;
+    height: 26px;
+    margin-right: 4px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+/* Text field */
+
+TextField {
+    min-width: 220px;
+    margin-right: 12px;
 }
 
 TextField .unity-base-text-field__input {
     background-color: rgb(242, 228, 196);
-    border-color: rgb(160, 132, 88);
+    border-width: 2px;
+    border-color: rgb(107, 74, 47);
+    border-radius: 6px;
     color: rgb(43, 31, 26);
-    padding: 4px 8px;
+    padding: 4px 10px;
+    font-size: 18px;
+    -unity-font-definition: url("../Fonts/AlegreyaSans-Bold_SDF.asset");
 }
 
-.preview .hint {
-    color: rgba(242, 228, 196, 0.85);
+TextField:focus .unity-base-text-field__input {
+    border-color: rgb(194, 86, 43);
+}
+
+/* Scroll bars: a thin bark-brown handle in a parchment groove. */
+
+.unity-scroller--vertical {
+    width: 10px;
+    margin-left: 4px;
+}
+
+.unity-scroller__low-button, .unity-scroller__high-button {
+    display: none;
+}
+
+.unity-scroller--vertical .unity-scroller__slider {
+    margin: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.unity-scroller--vertical .unity-base-slider__tracker {
+    background-color: rgb(205, 181, 130);
+    border-width: 0;
+    border-radius: 5px;
+}
+
+.unity-scroller--vertical .unity-base-slider__dragger {
+    background-color: rgb(107, 74, 47);
+    border-width: 0;
+    border-radius: 5px;
+    left: 1px;
+    right: 1px;
+}
+
+.unity-scroller--vertical .unity-base-slider__dragger:hover {
+    background-color: rgb(133, 95, 62);
 }

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Units.BuffDefinition
   id: buff_bloodlust
   displayName: Bloodlust
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 45faffb603fd8004d9f43c11d688359f, type: 3}
   rarity: 1
   modifiers:
   - stat: 1
