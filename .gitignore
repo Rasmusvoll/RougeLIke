@@ -73,3 +73,6 @@ crashlytics-build.properties
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Editor-made backups of project settings
+/[Pp]roject[Ss]ettings/*.bak-*
