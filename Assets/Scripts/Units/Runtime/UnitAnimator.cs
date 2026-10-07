@@ -8,8 +8,10 @@ namespace RougeLike.Units
     /// <summary>
     /// Procedural animation for an assembled unit, so any mix of body and parts moves without
     /// hand-made clips. Every part pivots on its attach point (the model origin), so each one is
-    /// posed by rotating and nudging it from its rest pose, by slot type: legs step, arms swing and
-    /// strike, heads look and bob, tails sway, and the body breathes, bobs and squashes. UnitAssembler
+    /// posed by rotating and nudging it from its rest pose, by part kind wherever it's mounted (in the
+    /// body's frame, so a leg on the front still steps forward): legs step in diagonal pairs (or hop,
+    /// or limp), arms swing and strike, heads look and bob, tails sway, legs that can't reach the
+    /// ground paddle in the air, and the body breathes, bobs and squashes. UnitAssembler
     /// adds it to every unit; BattleUnit feeds it movement and attacks, and the builder preview shows
     /// off parts with it. Only the visual moves: physics stays on BattleUnit's rigidbody.
     /// </summary>
@@ -23,7 +25,9 @@ namespace RougeLike.Units
         {
             public Transform t;
             public string slotId;
-            public SlotType type;
+            public SlotType type;       // the part's kind, not the slot's: a leg poses as a leg anywhere
+            public bool walks;          // a leg that reaches the ground
+            public Vector3 attach;      // attach point, relative to the ground under the body
             public float side;          // -1 on mirrored (left) slots
             public float offset;        // per-limb idle offset so nothing moves in lockstep
             public float stepPhase;     // 0 or pi: which half of the walk cycle this limb steps in
@@ -47,8 +51,10 @@ namespace RougeLike.Units
         Vector3 restPos, restScale;
         float size = 0.6f;
         bool measured;
-        bool hasLegs;
-        float legLength;
+        bool hasLegs, gaitReady, restCaptured;
+        float legLength, lean;
+        readonly List<Limb> walkers = new();
+        Limb kickLeg;
 
         float clock, phase, move, airborne, flail;
         float speed, signedDir = 1f;
@@ -74,8 +80,12 @@ namespace RougeLike.Units
         /// <summary>Limbs kick and flop, for a unit that has fallen over.</summary>
         public bool Flailing { get; set; }
 
-        void Awake()
+        void Awake() => CaptureRest();
+
+        // Also called lazily, since Awake doesn't run when a unit is spawned in edit mode (e.g. icon renders).
+        void CaptureRest()
         {
+            restCaptured = true;
             restRot = transform.localRotation;
             restPos = transform.localPosition;
             restScale = transform.localScale;
@@ -90,17 +100,21 @@ namespace RougeLike.Units
             var b = renderers[0].bounds;
             foreach (var r in renderers) b.Encapsulate(r.bounds);
             size = Mathf.Clamp(b.size.y / Mathf.Max(0.01f, transform.lossyScale.y), 0.4f, 2.5f);
-            if (!hasLegs) legLength = size * 0.3f;
         }
 
-        /// <summary>Registers a part spawned on a slot. Called by UnitAssembler.</summary>
-        public void AddLimb(Transform part, string slotId, SlotType type, bool mirror, IList<string> tags, Vector3 attachPoint)
+        /// <summary>
+        /// Registers a part spawned on a slot. Called by UnitAssembler. The part is posed by its own
+        /// kind wherever it's mounted; walks marks a leg that reaches the ground and steps.
+        /// </summary>
+        public void AddLimb(Transform part, string slotId, SlotType kind, bool mirror, IList<string> tags, Vector3 attachPoint, bool walks)
         {
             var l = new Limb
             {
                 t = part,
                 slotId = slotId,
-                type = type,
+                type = kind,
+                walks = walks,
+                attach = attachPoint,
                 side = mirror ? -1f : 1f,
                 offset = limbs.Count * 1.7f,
                 hipHeight = Mathf.Max(0.15f, attachPoint.y),
@@ -111,27 +125,48 @@ namespace RougeLike.Units
                 restPos = part.localPosition,
                 restScale = part.localScale,
             };
-            // Left and right step in opposite halves of the cycle; arms swing against the legs.
+            // Left and right swing in opposite halves of the cycle; arms swing against the legs.
+            // Walking legs get their phases in SetUpGait, once all are known.
             bool left = attachPoint.x < 0f;
             l.stepPhase = left ? Mathf.PI : 0f;
-            if (type == SlotType.Arm) l.stepPhase += Mathf.PI;
+            if (kind == SlotType.Arm) l.stepPhase += Mathf.PI;
             if (l.thrower)
             {
                 l.heldRock = part.Find("Held Rock");
                 if (l.heldRock != null) l.rockScale = l.heldRock.localScale;
             }
             limbs.Add(l);
-            if (type == SlotType.Head && head == null) head = l;
+            if (kind == SlotType.Head && head == null) head = l;
+            gaitReady = false;
+        }
 
-            if (type == SlotType.Leg)
+        /// <summary>
+        /// Works out the walk from wherever the legs ended up: legs step in diagonal pairs (left
+        /// against right, front against back), a lone leg hops, and legs bunched on one side limp.
+        /// </summary>
+        void SetUpGait()
+        {
+            gaitReady = true;
+            walkers.Clear();
+            foreach (var l in limbs) if (l.walks) walkers.Add(l);
+            hasLegs = walkers.Count > 0;
+            kickLeg = null;
+            if (!hasLegs) { legLength = size * 0.3f; lean = 0f; return; }
+
+            float total = 0f, midZ = 0f, sideSum = 0f;
+            foreach (var l in walkers) { total += l.hipHeight; midZ += l.attach.z; }
+            legLength = total / walkers.Count;
+            midZ /= walkers.Count;
+            foreach (var l in walkers)
             {
-                int legs = 0;
-                float total = 0f;
-                foreach (var x in limbs)
-                    if (x.type == SlotType.Leg) { legs++; total += x.hipHeight; }
-                hasLegs = true;
-                legLength = total / legs;
+                float x = l.attach.x;
+                bool left = x < -0.05f, right = x > 0.05f;
+                bool rear = l.attach.z < midZ - 0.05f;
+                l.stepPhase = (left ? Mathf.PI : 0f) + (rear ? Mathf.PI : 0f);
+                sideSum += right ? 1f : left ? -1f : 0f;
+                if (kickLeg == null || l.attach.z > kickLeg.attach.z) kickLeg = l; // the front-most leg kicks
             }
+            lean = sideSum / walkers.Count;
         }
 
         // Inputs
@@ -233,13 +268,15 @@ namespace RougeLike.Units
             Flourish(limbs[Random.Range(0, limbs.Count)].slotId);
         }
 
-        static bool Uses(Limb l, AttackKind kind) => kind switch
+        bool Uses(Limb l, AttackKind kind) => kind switch
         {
             AttackKind.Throw => l.thrower,
             AttackKind.Spit => l.ranged && !l.thrower && l.type == SlotType.Head,
-            _ => l.type == SlotType.Arm && !l.thrower
-                 || l.melee && (l.type == SlotType.Head || l.type == SlotType.Tail),
+            _ => HitsInMelee(l) || l == kickLeg && !limbs.Exists(HitsInMelee), // nothing to hit with: kick
         };
+
+        static bool HitsInMelee(Limb l) =>
+            l.type == SlotType.Arm && !l.thrower || l.melee && (l.type == SlotType.Head || l.type == SlotType.Tail);
 
         void StrikeRoot(AttackKind kind, float power)
         {
@@ -265,7 +302,9 @@ namespace RougeLike.Units
         public void Tick(float dt)
         {
             if (dt <= 0f) return;
+            if (!restCaptured) CaptureRest();
             if (!measured) MeasureSize();
+            if (!gaitReady) SetUpGait();
             clock += dt;
 
             TickFlourish(dt);
@@ -382,6 +421,8 @@ namespace RougeLike.Units
 
             // Walk: a bob each step, a lean into the walk and a sway.
             p.y += Mathf.Abs(Mathf.Sin(phase)) * 0.035f * size * move;
+            if (walkers.Count == 1) p.y += Mathf.Abs(Mathf.Sin(phase)) * 0.09f * size * move; // hop
+            e.z += lean * 7f * move * (0.6f + 0.4f * Mathf.Sin(phase));                        // limp toward the short side
             e.x += 5f * move * signedDir;
             e.z += Mathf.Sin(phase) * 3f * move;
             s.y *= 1f + airborne * 0.05f;
@@ -424,13 +465,24 @@ namespace RougeLike.Units
 
             switch (l.type)
             {
+                case SlotType.Leg when !l.walks:
+                    // Can't reach the ground (e.g. on top of the body): paddles in the air.
+                    e.x += Mathf.Sin(idle * 2.6f) * 18f - Mathf.Sin(step) * 25f * move;
+                    e.z += Mathf.Sin(idle * 1.9f) * 8f;
+                    e.x += Mathf.Sin(clock * 16f + l.offset) * 40f * flail;
+                    break;
+
                 case SlotType.Leg:
                     e.x += -Mathf.Sin(step) * SwingAmp * Mathf.Rad2Deg * move;
-                    p.y += lift * l.hipHeight * 0.25f * move;
+                    p.y += lift * Mathf.Min(l.hipHeight, 0.5f) * 0.25f * move;
                     e.z += lift * 6f * move;
                     e.x += 15f * airborne;  // dangle
                     e.z += 10f * airborne;
                     e.x += Mathf.Sin(clock * 16f + l.offset) * 40f * flail;
+                    // A kick, for a unit with nothing else to hit with: draw back, then stamp forward.
+                    e.x += 20f * w;
+                    p.y += 0.06f * w;
+                    if (l.strikeKind == AttackKind.Melee) { e.x -= 55f * st; p.y += 0.08f * st; }
                     break;
 
                 case SlotType.Arm when l.thrower:

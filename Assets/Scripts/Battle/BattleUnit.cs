@@ -10,6 +10,10 @@ namespace RougeLike.Battle
     /// Hits shove the target and knock its balance out, so big hits make units stagger or fall over.
     /// On death balance is switched off and the parts break away. Stats come from the UnitInstance
     /// that UnitAssembler builds as this object's child.
+    /// How it moves comes from its legs (Gait): with none it sits planted like a turret, only turning
+    /// to face its target and attacking whatever comes in reach; more legs make it steadier, one leg
+    /// makes it hop and wobble, and lopsided legs make it pull to one side so it walks a curve. A unit
+    /// with no attack part only kicks, and only if it has legs.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public class BattleUnit : MonoBehaviour
@@ -29,6 +33,8 @@ namespace RougeLike.Battle
         const float MeleeKnock = 1.8f, MeleeKnockPerDamage = 0.09f, MaxKnock = 6.5f;
         const float LungeSpeed = 3.5f;
         const float HitDelay = 0.12f;         // lunge travels a moment before the blow lands
+        const float KickDamage = 0.35f, KickKnock = 0.6f; // a unit with no attack part kicks, weakly
+        const float LimpPull = 9f;            // sideways turn from lopsided legs, as yaw acceleration
 
         static PhysicsMaterial slippery, grippy;
 
@@ -55,6 +61,8 @@ namespace RougeLike.Battle
         UnitAnimator anim;
         HealthBar bar;
         float height;
+        Gait gait;
+        bool kicks, harmless;
 
         BattleUnit target;
         float attackTimer, retargetTimer;
@@ -91,6 +99,9 @@ namespace RougeLike.Battle
             anim = visual.GetComponent<UnitAnimator>();
             IsRanged = unit.Tags.Contains("ranged");
             IsThrower = unit.Tags.Contains("thrower");
+            gait = unit.Gait;
+            kicks = !unit.HasAttackPart && gait.CanMove;
+            harmless = !unit.HasAttackPart && !gait.CanMove;
 
             // Size from the model: a box around the body (limbs trimmed a little) is the hit shape.
             var renderers = visual.GetComponentsInChildren<Renderer>();
@@ -105,7 +116,7 @@ namespace RougeLike.Battle
             size = new Vector3(Mathf.Abs(size.x) * 0.75f, Mathf.Abs(size.y), Mathf.Abs(size.z) * 0.8f);
             box.center = new Vector3(localCenter.x, size.y * 0.5f, localCenter.z);
             box.size = size;
-            box.material = Slippery;
+            box.material = Standing;
 
             body = GetComponent<Rigidbody>();
             body.mass = 1f + Unit.Stats.Get(StatType.MaxHealth) / 100f;
@@ -142,6 +153,9 @@ namespace RougeLike.Battle
             dynamicFriction = 0.8f, staticFriction = 0.9f, frictionCombine = PhysicsMaterialCombine.Maximum,
         };
 
+        /// <summary>Walkers glide on their feet; a unit with no legs sits on its belly and grips.</summary>
+        PhysicsMaterial Standing => gait.CanMove ? Slippery : Grippy;
+
         void OnDestroy()
         {
             if (overlay != null) Destroy(overlay.gameObject);
@@ -170,7 +184,7 @@ namespace RougeLike.Battle
                 target = battle.NearestEnemy(this);
                 retargetTimer = RetargetInterval;
             }
-            if (target == null || Toppled) return;
+            if (target == null || Toppled || harmless) return;
 
             var to = Flat(target.transform.position - transform.position);
             float gap = to.magnitude - Radius - target.Radius;
@@ -227,8 +241,9 @@ namespace RougeLike.Battle
             if (!IsAlive || t == null || !t.IsAlive) return;
             var to = Flat(t.transform.position - transform.position);
             if (to.magnitude - Radius - t.Radius > Reach + 0.5f) return; // whiffed
-            float damage = Unit.Stats.Get(StatType.Attack);
+            float damage = Unit.Stats.Get(StatType.Attack) * (kicks ? KickDamage : 1f);
             float knock = Mathf.Min(MaxKnock, (MeleeKnock + damage * MeleeKnockPerDamage) * Mass / t.Mass);
+            if (kicks) knock *= KickKnock;
             var point = Vector3.Lerp(t.CenterPosition, MuzzlePosition, 0.5f);
             t.Hit(damage, to.normalized, knock, point);
         }
@@ -251,7 +266,7 @@ namespace RougeLike.Battle
                 var impulse = (dir + Vector3.up * 0.3f) * knock * body.mass;
                 var high = new Vector3(point.x, Mathf.Max(point.y, body.worldCenterOfMass.y + height * 0.25f), point.z);
                 body.AddForceAtPosition(impulse, high, ForceMode.Impulse);
-                balance = Mathf.Max(0f, balance - knock / 6f);
+                balance = Mathf.Max(0f, balance - knock / (6f * gait.Stability));
                 if (knockDown && dir != Vector3.zero)
                 {
                     balance = 0f;
@@ -350,36 +365,47 @@ namespace RougeLike.Battle
             else if (gettingUp) strength = 2.5f;
             else
             {
-                balance = Mathf.MoveTowards(balance, 1f, BalanceRecovery * dt);
+                balance = Mathf.MoveTowards(balance, 1f, BalanceRecovery * gait.Stability * dt);
                 strength = Mathf.Lerp(0.15f, 1f, balance);
             }
 
-            // Stay upright: torque toward world up, damped on the tipping axes.
+            // Stay upright: torque toward world up, damped on the tipping axes. More legs hold harder.
             var w = body.angularVelocity;
             var axis = Vector3.Cross(transform.up, Vector3.up);
             var tipW = w - Vector3.Project(w, Vector3.up);
-            body.AddTorque((axis * UprightStrength - tipW * UprightDamping) * strength, ForceMode.Acceleration);
+            body.AddTorque((axis * UprightStrength * gait.Stability - tipW * UprightDamping) * strength, ForceMode.Acceleration);
             if (gettingUp && Grounded) body.AddForce(Vector3.up * 4f, ForceMode.Acceleration); // a little hop helps
 
             if (Time.time < toppledUntil || gettingUp || target == null || !target.IsAlive || battle.Phase != BattlePhase.Fighting)
                 return;
 
-            // Turn toward the target.
+            // Turn toward the target. Without legs it can only shuffle round slowly.
             var to = Flat(target.transform.position - transform.position);
             float yawErr = Vector3.SignedAngle(Flat(transform.forward), to, Vector3.up) * Mathf.Deg2Rad;
-            body.AddTorque(Vector3.up * (yawErr * TurnStrength - w.y * TurnDamping) * strength, ForceMode.Acceleration);
+            float turn = gait.CanMove ? 1f : 0.5f;
+            body.AddTorque(Vector3.up * (yawErr * TurnStrength * turn - w.y * TurnDamping) * strength, ForceMode.Acceleration);
+
+            var vel = Flat(body.linearVelocity);
+            if (!gait.CanMove)
+            {
+                // No legs: stays put, only sliding as far as hits shove it.
+                if (Grounded) body.AddForce(-vel * 3f, ForceMode.Acceleration);
+                return;
+            }
 
             // Walk: steer the horizontal velocity toward the target, only with feet on the ground.
             float gap = to.magnitude - Radius - target.Radius;
-            var vel = Flat(body.linearVelocity);
             var desired = gap > Reach ? to.normalized * Unit.Stats.Get(StatType.Speed) : Vector3.zero;
             if (Grounded) body.AddForce(Vector3.ClampMagnitude((desired - vel) * 6f, MoveAccel) * strength, ForceMode.Acceleration);
 
-            // A TABS-ish waddle: rock side to side while walking.
             if (desired != Vector3.zero)
             {
+                // A TABS-ish waddle: rock side to side while walking. One leg wobbles, a limp lurches.
                 walkPhase += dt * (5f + Unit.Stats.Get(StatType.Speed));
-                body.AddTorque(transform.forward * Mathf.Sin(walkPhase) * 6f * strength, ForceMode.Acceleration);
+                float rock = 6f * (gait.Legs == 1 ? 1.8f : 1f) * (1f + Mathf.Abs(gait.Lean));
+                body.AddTorque(transform.forward * Mathf.Sin(walkPhase) * rock * strength, ForceMode.Acceleration);
+                // The stronger side pushes harder, turning the unit away from it: it walks a curve.
+                body.AddTorque(Vector3.up * -gait.Lean * LimpPull * (0.6f + 0.4f * Mathf.Sin(walkPhase)) * strength, ForceMode.Acceleration);
             }
         }
 
@@ -388,7 +414,7 @@ namespace RougeLike.Battle
             gettingUp = false;
             toppledUntil = -1f;
             balance = 0.5f;
-            box.material = Slippery;
+            box.material = Standing;
         }
 
         void LateUpdate()

@@ -6,6 +6,8 @@ namespace RougeLike.Units
     /// <summary>Turns a UnitBlueprint into a UnitInstance. Used for both player and enemy units.</summary>
     public static class UnitAssembler
     {
+        static readonly string[] AttackTags = { "melee", "ranged", "thrower" };
+
         public static int EnergyUsed(UnitBlueprint bp, ContentDatabase db)
         {
             int total = 0;
@@ -18,6 +20,7 @@ namespace RougeLike.Units
             return total;
         }
 
+        /// <summary>Any part fits any slot; the body's energy budget is the limit.</summary>
         public static bool Validate(UnitBlueprint bp, ContentDatabase db, out string error)
         {
             error = null;
@@ -34,7 +37,6 @@ namespace RougeLike.Units
                 if (!used.Add(a.slotId)) { error = $"Slot '{a.slotId}' is used twice."; return false; }
                 var part = db.GetPart(a.partId);
                 if (part == null) { error = $"Unknown part '{a.partId}'."; return false; }
-                if (part.fitsSlot != slot.type) { error = $"{part.displayName} fits {part.fitsSlot}, not {slot.type}."; return false; }
                 energy += part.energyCost;
             }
             if (energy > body.energy) { error = $"Parts cost {energy} energy, body has {body.energy}."; return false; }
@@ -67,7 +69,7 @@ namespace RougeLike.Units
                 foreach (var ab in part.abilities) if (ab != null) abilities.Add(ab);
 
             if (!root.TryGetComponent<UnitInstance>(out var unit)) unit = root.AddComponent<UnitInstance>();
-            unit.Initialize(bp, stats, abilities, tags, team);
+            unit.Initialize(bp, stats, abilities, tags, team, Gait.Of(bp, db));
             return unit;
         }
 
@@ -75,6 +77,9 @@ namespace RougeLike.Units
         /// Spawns the body model with each part at its slot's attach point, plus a UnitAnimator to
         /// move them, without any gameplay components. Used by Build and by the unit builder's
         /// preview. Skips parts in unknown slots.
+        /// Each part is turned to face out of its slot (see MountRotation) and mirrored on the left.
+        /// Then the unit is stood on the ground: its lowest point goes to y = 0, and legs too short
+        /// to reach the ground from where they're mounted are stretched until they do.
         /// </summary>
         public static GameObject SpawnVisual(UnitBlueprint bp, ContentDatabase db, Transform parent)
         {
@@ -92,8 +97,9 @@ namespace RougeLike.Units
                 root.transform.SetParent(parent, false);
             }
             root.name = string.IsNullOrEmpty(bp.name) ? body.displayName : bp.name;
-            var animator = root.AddComponent<UnitAnimator>();
+            float ground = LowestPoint(root.transform, root.transform);
 
+            var mounted = new List<(GameObject go, SlotAssignment a, PartDefinition part, SlotDefinition slot, bool walks)>();
             foreach (var a in bp.parts)
             {
                 var part = db.GetPart(a.partId);
@@ -101,19 +107,124 @@ namespace RougeLike.Units
                 if (part == null || slot == null || part.prefab == null) continue;
                 var go = Object.Instantiate(part.prefab, root.transform);
                 go.transform.localPosition = slot.localPosition;
-                if (slot.mirror) go.transform.localScale = Vector3.Scale(go.transform.localScale, new Vector3(-1f, 1f, 1f));
+                var rot = MountRotation(part.kind, slot);
+                var scale = go.transform.localScale;
+                if (slot.Mirrored)
+                {
+                    // Mirror across the body's X: reflect the rotation and flip the part itself.
+                    rot = new Quaternion(rot.x, -rot.y, -rot.z, rot.w);
+                    scale.x = -scale.x;
+                }
+                go.transform.localRotation = rot * go.transform.localRotation;
+                go.transform.localScale = scale;
                 go.name = $"{a.slotId}: {part.displayName}";
-                animator.AddLimb(go.transform, a.slotId, slot.type, slot.mirror, part.tags, slot.localPosition);
+                bool walks = part.IsLocomotion && Gait.Reaches(slot);
+                mounted.Add((go, a, part, slot, walks));
+                ground = Mathf.Min(ground, LowestPoint(go.transform, root.transform));
+            }
+
+            // Stretch walking legs down to the ground, then stand the whole unit on it.
+            foreach (var m in mounted)
+            {
+                if (!m.walks) continue;
+                float foot = LowestPoint(m.go.transform, root.transform);
+                float hip = m.slot.localPosition.y;
+                if (foot <= ground + 0.01f || hip - foot < 0.05f) continue;
+                float k = Mathf.Clamp((hip - ground) / (hip - foot), 1f, 4f);
+                var s = m.go.transform.localScale;
+                m.go.transform.localScale = new Vector3(s.x, s.y * k, s.z);
+            }
+            root.transform.localPosition += root.transform.localRotation * new Vector3(0f, -ground * root.transform.localScale.y, 0f);
+
+            var animator = root.AddComponent<UnitAnimator>();
+            foreach (var m in mounted)
+            {
+                var attach = m.slot.localPosition;
+                attach.y -= ground;
+                animator.AddLimb(m.go.transform, m.a.slotId, m.part.kind, m.slot.Mirrored, m.part.tags, attach, m.walks);
             }
             return root;
         }
 
-        /// <summary>Final stats for a blueprint: body base, part modifiers, then run buffs that apply.</summary>
+        /// <summary>
+        /// Which way a part faces on a slot, for the right-hand side (left slots mirror it). Parts are
+        /// modelled for their own slot type, so a part on its own type of slot isn't turned. Otherwise
+        /// it's turned to point out of the slot: a tail on the head becomes a lance, a shell on the
+        /// side a shield, an arm on the back reaches up. Heads keep looking forward unless mounted at
+        /// the rear, and legs always hang down, splayed out from the slot (or wave in the air on top).
+        /// </summary>
+        public static Quaternion MountRotation(SlotType kind, SlotDefinition slot)
+        {
+            var at = slot.type;
+            if (kind == at) return Quaternion.identity;
+            switch (kind)
+            {
+                case SlotType.Head:
+                    return at == SlotType.Tail ? Quaternion.Euler(0f, 180f, 0f) : Quaternion.identity;
+                case SlotType.Leg:
+                    return at switch
+                    {
+                        SlotType.Head => Quaternion.Euler(0f, -90f, 0f),  // splay forward
+                        SlotType.Tail => Quaternion.Euler(0f, 90f, 0f),   // splay back
+                        SlotType.Back => Quaternion.Euler(0f, 0f, 180f),  // feet in the air
+                        _ => Quaternion.identity,
+                    };
+                case SlotType.Arm:
+                    return at switch
+                    {
+                        SlotType.Tail => Quaternion.Euler(0f, 180f, 0f),
+                        SlotType.Back => Quaternion.Euler(0f, 0f, 70f),   // reach up
+                        _ => Quaternion.identity,                         // claws already reach forward
+                    };
+            }
+            var from = Axis(kind);
+            var to = Axis(at);
+            if (Vector3.Dot(from, to) < -0.99f) return Quaternion.AngleAxis(180f, Vector3.up);
+            return Quaternion.FromToRotation(from, to);
+        }
+
+        /// <summary>The way a part of this kind points out of the body in its model, right-hand side.</summary>
+        static Vector3 Axis(SlotType kind) => kind switch
+        {
+            SlotType.Head => Vector3.forward,
+            SlotType.Tail => Vector3.back,
+            SlotType.Back => Vector3.up,
+            _ => Vector3.right,
+        };
+
+        /// <summary>Lowest point of an object's meshes, in the unit root's local space.</summary>
+        static float LowestPoint(Transform t, Transform root)
+        {
+            float min = float.MaxValue;
+            foreach (var r in t.GetComponentsInChildren<Renderer>())
+            {
+                Mesh mesh = null;
+                if (r is MeshRenderer && r.TryGetComponent<MeshFilter>(out var mf)) mesh = mf.sharedMesh;
+                else if (r is SkinnedMeshRenderer smr) mesh = smr.sharedMesh;
+                if (mesh == null) continue;
+                var b = mesh.bounds;
+                var toRoot = root.worldToLocalMatrix * r.transform.localToWorldMatrix;
+                for (int i = 0; i < 8; i++)
+                {
+                    var c = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    min = Mathf.Min(min, toRoot.MultiplyPoint3x4(c).y);
+                }
+            }
+            return min == float.MaxValue ? 0f : min;
+        }
+
+        /// <summary>
+        /// Final stats for a blueprint: body base, part modifiers, then run buffs that apply. Speed's
+        /// base comes from the unit's legs (see Gait); with none it's fixed at zero.
+        /// </summary>
         public static StatBlock ComputeStats(UnitBlueprint bp, IEnumerable<BuffDefinition> buffs, ContentDatabase db)
         {
             var body = db.GetBody(bp?.bodyId);
             var stats = new StatBlock(body != null ? body.baseStats : null);
             if (body == null) return stats;
+            var gait = Gait.Of(bp, db);
+            stats.SetBase(StatType.Speed, gait.Speed);
+            if (!gait.CanMove) stats.Fix(StatType.Speed, 0f);
             foreach (var part in ResolveParts(bp, db)) stats.AddRange(part.modifiers);
             if (buffs != null)
             {
@@ -132,6 +243,23 @@ namespace RougeLike.Units
                 foreach (var t in part.tags)
                     if (!tags.Contains(t)) tags.Add(t);
             return tags;
+        }
+
+        public static bool HasAttackPart(IList<string> tags)
+        {
+            if (tags == null) return false;
+            foreach (var t in AttackTags) if (tags.Contains(t)) return true;
+            return false;
+        }
+
+        /// <summary>How the unit fights, in a few words, e.g. "melee", "ranged" or "only kicks".</summary>
+        public static string DescribeAttack(UnitBlueprint bp, ContentDatabase db)
+        {
+            var tags = CollectTags(bp, db);
+            if (tags.Contains("thrower")) return "throws boulders";
+            if (tags.Contains("ranged")) return "ranged";
+            if (tags.Contains("melee")) return "melee";
+            return Gait.Of(bp, db).CanMove ? "only kicks" : "no attack";
         }
 
         static List<PartDefinition> ResolveParts(UnitBlueprint bp, ContentDatabase db)

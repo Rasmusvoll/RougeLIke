@@ -52,14 +52,15 @@ namespace RougeLike.Builder
             }
         }
 
-        /// <summary>Unequipped parts in the collection, optionally only those that fit a slot type.</summary>
-        public IEnumerable<(PartDefinition part, int count)> Inventory(SlotType? fits = null)
+        public Gait CurrentGait => Gait.Of(Current, Db);
+
+        /// <summary>Unequipped parts in the collection. Any of them fits any slot.</summary>
+        public IEnumerable<(PartDefinition part, int count)> Inventory()
         {
             foreach (var stack in Collection.parts)
             {
                 var p = Db.GetPart(stack.partId);
                 if (p == null || stack.count <= 0) continue;
-                if (fits.HasValue && p.fitsSlot != fits.Value) continue;
                 yield return (p, stack.count);
             }
         }

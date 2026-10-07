@@ -24,8 +24,6 @@ MonoBehaviour:
     value: 10
   - stat: 2
     value: 5
-  - stat: 3
-    value: 2
   - stat: 4
     value: 1
   slots:
@@ -49,5 +47,16 @@ MonoBehaviour:
     type: 4
     localPosition: {x: 0, y: 0.75, z: -0.62}
     mirror: 0
+  - slotId: leg_left
+    type: 2
+    localPosition: {x: -0.42, y: 0.35, z: -0.1}
+    mirror: 1
+  - slotId: leg_right
+    type: 2
+    localPosition: {x: 0.42, y: 0.35, z: -0.1}
+    mirror: 0
   energy: 10
+  moveScale: 0.7
+  builtInLegs: 2
+  builtInStride: 2.5
   innateAbilities: []

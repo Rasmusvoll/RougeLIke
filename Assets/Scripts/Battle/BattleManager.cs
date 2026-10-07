@@ -51,6 +51,8 @@ namespace RougeLike.Battle
         public Material BoulderMaterial => boulderMaterial;
         public BattlePhase Phase { get; private set; } = BattlePhase.Placement;
         public EnemyWave Wave { get; private set; }
+        /// <summary>The fight was called after nobody landed a hit for a while.</summary>
+        public bool Stalemate { get; private set; }
         public int BattleNumber => RunState.BattlesWon + 1;
         public BattleContext Context { get; private set; }
         public Transform UnitRoot { get; private set; }
@@ -60,7 +62,9 @@ namespace RougeLike.Battle
 
         List<BuffDefinition> playerBuffs;
         GameObject playerZone, enemyZone;
-        float endTimer = -1f, shake;
+        const float StalemateTime = 20f;  // seconds without a hit before the fight is called
+
+        float endTimer = -1f, shake, lastHitTime;
         Camera cam;
         Vector3 camHome;
         BattlePhase pendingResult;
@@ -240,6 +244,7 @@ namespace RougeLike.Battle
             enemyZone.SetActive(false);
             foreach (var u in PlayerUnits) u.SetSimulated(true);
             foreach (var u in EnemyUnits) u.SetSimulated(true);
+            lastHitTime = Time.time;
             Changed?.Invoke();
         }
 
@@ -262,6 +267,7 @@ namespace RougeLike.Battle
 
         public void OnHit(Vector3 point, float knock, Team victim)
         {
+            lastHitTime = Time.time;
             BattleEffects.Spark(point, 0.25f + knock * 0.06f, victim == Team.Player ? playerColor : enemyColor);
             shake = Mathf.Min(0.35f, shake + knock * 0.02f);
         }
@@ -275,9 +281,29 @@ namespace RougeLike.Battle
             else if (!PlayerUnits.Exists(p => p.IsAlive)) { pendingResult = BattlePhase.Defeat; endTimer = 1.5f; }
         }
 
+        /// <summary>Health left on a side, as a share of its full health.</summary>
+        static float HealthShare(List<BattleUnit> units)
+        {
+            float now = 0f, max = 0f;
+            foreach (var u in units)
+            {
+                max += Mathf.Max(1f, u.Unit.Stats.Get(StatType.MaxHealth));
+                if (u.IsAlive) now += u.Unit.CurrentHealth;
+            }
+            return max > 0f ? now / max : 0f;
+        }
+
         void Update()
         {
-            if (Phase != BattlePhase.Fighting || endTimer < 0f) return;
+            if (Phase != BattlePhase.Fighting) return;
+            // Stalemate (say legless turrets out of each other's reach): whoever has more health left wins.
+            if (endTimer < 0f && Time.time - lastHitTime > StalemateTime)
+            {
+                pendingResult = HealthShare(PlayerUnits) > HealthShare(EnemyUnits) ? BattlePhase.Victory : BattlePhase.Defeat;
+                Stalemate = true;
+                endTimer = 0.5f;
+            }
+            if (endTimer < 0f) return;
             endTimer -= Time.deltaTime;
             if (endTimer < 0f)
             {

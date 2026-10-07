@@ -15,13 +15,21 @@ MonoBehaviour:
   displayName: Grubs
   units:
   - blueprint:
-      name: Grub
+      name: Kicker Grub
       bodyId: body_crawler
-      parts: []
+      parts:
+      - slotId: leg_left
+        partId: part_quick_legs
+      - slotId: leg_right
+        partId: part_quick_legs
     position: {x: -1.5, y: 2.8}
   - blueprint:
-      name: Grub
+      name: Kicker Grub
       bodyId: body_crawler
-      parts: []
+      parts:
+      - slotId: leg_left
+        partId: part_quick_legs
+      - slotId: leg_right
+        partId: part_quick_legs
     position: {x: 1.5, y: 2.8}
   buffs: []

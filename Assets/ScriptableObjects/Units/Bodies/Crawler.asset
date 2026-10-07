@@ -24,8 +24,6 @@ MonoBehaviour:
     value: 8
   - stat: 2
     value: 2
-  - stat: 3
-    value: 4
   - stat: 4
     value: 1
   slots:
@@ -49,5 +47,14 @@ MonoBehaviour:
     type: 2
     localPosition: {x: 0.34, y: 0.32, z: -0.2}
     mirror: 0
+  - slotId: back
+    type: 3
+    localPosition: {x: 0, y: 0.55, z: -0.25}
+    mirror: 0
+  - slotId: tail
+    type: 4
+    localPosition: {x: 0, y: 0.36, z: -0.9}
+    mirror: 0
   energy: 8
+  moveScale: 1
   innateAbilities: []

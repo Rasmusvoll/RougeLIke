@@ -17,7 +17,8 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: e44328621066a2a42ba8bd58fbeeeb63, type: 3}
   rarity: 1
   prefab: {fileID: 919132149155446097, guid: 4aef2bfb14c5d12448e0a903ac324f15, type: 3}
-  fitsSlot: 0
+  kind: 0
+  stride: 0
   energyCost: 3
   modifiers:
   - stat: 4

@@ -84,8 +84,8 @@ namespace RougeLike.Units
 
         /// <summary>
         /// Puts one copy of a part into a blueprint slot, consuming it from the collection.
-        /// Any part already in that slot is destroyed. Fails if the slot type doesn't match
-        /// or the body's energy budget would be exceeded.
+        /// Any part already in that slot is destroyed. Any part fits any slot; fails if the body's
+        /// energy budget would be exceeded.
         /// </summary>
         public bool TryEquip(UnitBlueprint bp, string slotId, string partId, ContentDatabase db, out string error)
         {
@@ -99,7 +99,6 @@ namespace RougeLike.Units
             if (slot == null) { error = $"Body '{body.displayName}' has no slot '{slotId}'."; return false; }
             var part = db.GetPart(partId);
             if (part == null) { error = $"Unknown part '{partId}'."; return false; }
-            if (part.fitsSlot != slot.type) { error = $"{part.displayName} fits {part.fitsSlot}, not {slot.type}."; return false; }
 
             int energy = UnitAssembler.EnergyUsed(bp, db) + part.energyCost;
             var replaced = db.GetPart(bp.GetPartIn(slotId));

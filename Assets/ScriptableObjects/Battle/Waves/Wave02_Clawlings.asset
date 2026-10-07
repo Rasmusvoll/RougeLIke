@@ -22,6 +22,10 @@ MonoBehaviour:
         partId: part_claw
       - slotId: arm_right
         partId: part_claw
+      - slotId: leg_left
+        partId: part_quick_legs
+      - slotId: leg_right
+        partId: part_quick_legs
     position: {x: -2.5, y: 2.6}
   - blueprint:
       name: Horned Runner
@@ -35,7 +39,7 @@ MonoBehaviour:
         partId: part_quick_legs
     position: {x: 2.5, y: 2.6}
   - blueprint:
-      name: Spitter
+      name: Spitter Turret
       bodyId: body_crawler
       parts:
       - slotId: head

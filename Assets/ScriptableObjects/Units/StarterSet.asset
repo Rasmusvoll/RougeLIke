@@ -20,5 +20,5 @@ MonoBehaviour:
   - part: {fileID: 11400000, guid: 7c0bd393a3109834490b4bc977cdbf2d, type: 2}
     count: 1
   - part: {fileID: 11400000, guid: f9e0522d2a11649489318fb5cbb7cd4b, type: 2}
-    count: 2
+    count: 4
   buffs: []

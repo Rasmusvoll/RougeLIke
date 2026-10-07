@@ -12,11 +12,15 @@ namespace RougeLike.Units
         public List<AbilityDefinition> Abilities = new();
         public List<string> Tags = new();
         public Team Team;
+        public Gait Gait { get; private set; }
 
         public bool IsAlive => CurrentHealth > 0f;
+        /// <summary>Has a part that attacks (melee, ranged or thrower). Without one it can at most kick.</summary>
+        public bool HasAttackPart => UnitAssembler.HasAttackPart(Tags);
 
-        public void Initialize(UnitBlueprint source, StatBlock stats, List<AbilityDefinition> abilities, List<string> tags, Team team)
+        public void Initialize(UnitBlueprint source, StatBlock stats, List<AbilityDefinition> abilities, List<string> tags, Team team, Gait gait)
         {
+            Gait = gait;
             Source = source;
             Stats = stats;
             Abilities = abilities;

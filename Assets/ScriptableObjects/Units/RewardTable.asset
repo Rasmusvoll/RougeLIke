@@ -30,7 +30,7 @@ MonoBehaviour:
     weight: 3
   - kind: 1
     content: {fileID: 11400000, guid: f9e0522d2a11649489318fb5cbb7cd4b, type: 2}
-    weight: 3
+    weight: 5
   - kind: 1
     content: {fileID: 11400000, guid: 8011b17aa76daa646866e419f51c0ba8, type: 2}
     weight: 2

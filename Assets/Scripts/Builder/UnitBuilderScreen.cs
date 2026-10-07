@@ -278,7 +278,7 @@ namespace RougeLike.Builder
                     text.Add(L(part.displayName, "sub"));
                     StoryUI.StatChips(text, part.modifiers);
                 }
-                else text.Add(L($"Empty {slot.type.ToString().ToLowerInvariant()} slot", "sub", "empty"));
+                else text.Add(L("Empty · takes any part", "sub", "empty"));
                 row.RegisterCallback<ClickEvent>(_ => { ClearConfirm(); session.SelectSlot(slotId); });
 
                 if (part != null)
@@ -306,7 +306,7 @@ namespace RougeLike.Builder
             partsTitle.text = slot != null ? $"Parts for {SlotName(slot)}" : "All parts · pick a slot";
 
             bool any = false;
-            foreach (var (part, count) in session.Inventory(slot?.type))
+            foreach (var (part, count) in session.Inventory())
             {
                 any = true;
                 var row = Row(partList, false);
@@ -318,9 +318,11 @@ namespace RougeLike.Builder
                 nameLine.Add(L(part.displayName, "name"));
                 nameLine.Add(L($"×{count}", "count"));
                 var typeLine = Add(text, "hrow");
-                typeLine.Add(L($"{part.fitsSlot} part · ", "sub"));
+                typeLine.Add(L($"{part.kind} part · ", "sub"));
                 StoryUI.RarityLabel(typeLine, part.rarity);
                 StoryUI.StatChips(text, part.modifiers);
+                if (part.IsLocomotion) text.Add(L($"Walks · {Format(part.stride)} speed per leg", "sub"));
+                else if (!UnitAssembler.HasAttackPart(part.tags)) text.Add(L("No attack", "sub"));
 
                 var side = Add(row, "card-side");
                 side.style.alignSelf = Align.Stretch;
@@ -348,7 +350,7 @@ namespace RougeLike.Builder
                 side.Add(equip);
             }
             if (!any)
-                partList.Add(L(slot != null ? $"No {slot.type.ToString().ToLowerInvariant()} parts left. Win battles to find more." : "No parts left.", "empty"));
+                partList.Add(L("No parts left. Win battles to find more.", "empty"));
         }
 
         void RefreshEnergyAndStats()
@@ -366,6 +368,7 @@ namespace RougeLike.Builder
             energyRow.Add(count);
 
             var stats = session.CurrentStats;
+            var gait = session.CurrentGait;
             foreach (StatType s in Enum.GetValues(typeof(StatType)))
             {
                 float value = stats.Get(s), baseValue = stats.GetBase(s);
@@ -375,10 +378,19 @@ namespace RougeLike.Builder
                 col.Add(L(StoryUI.StatName(s), "sub"));
                 var line = Add(col, "hrow");
                 line.style.alignItems = Align.FlexEnd;
+                if (s == StatType.Speed)
+                {
+                    // Speed comes from legs: say how the unit gets about, or that it can't.
+                    line.Add(L(gait.CanMove ? Format(value) : "Can't move", "stat-value"));
+                    col.Add(L(gait.CanMove ? gait.Describe() : "Add legs to walk", "sub", gait.CanMove && !gait.Limps ? "up" : "down"));
+                    continue;
+                }
                 line.Add(L(Format(value), "stat-value"));
                 float delta = value - baseValue;
                 if (Mathf.Abs(delta) > 0.01f)
                     line.Add(L($"{(delta > 0 ? "+" : "")}{Format(delta)}", "stat-delta", delta > 0 ? "up" : "down"));
+                if (s == StatType.Attack && session.Current != null && !UnitAssembler.HasAttackPart(UnitAssembler.CollectTags(session.Current, database)))
+                    col.Add(L(gait.CanMove ? "Only kicks" : "No attack", "sub", "down"));
             }
         }
 

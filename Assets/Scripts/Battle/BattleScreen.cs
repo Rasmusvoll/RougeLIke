@@ -134,6 +134,7 @@ namespace RougeLike.Battle
                 resultTitle.EnableInClassList("down", !won);
                 resultText.text = won
                     ? $"{alivePlayers} of your {battle.PlayerUnits.Count} units survived. Rewards come in a later update."
+                    : battle.Stalemate ? "Stalemate: nobody could reach anybody, and you didn't have more health left than the enemy. The run is over."
                     : "Your army was wiped out. The run is over.";
                 resultButton.text = won ? "Back to builder" : "Start a new run";
             }
@@ -167,7 +168,8 @@ namespace RougeLike.Battle
                     continue;
                 }
                 var stats = UnitAssembler.ComputeStats(bp, buffs, db);
-                text.Add(L($"{body?.displayName} · {(UnitAssembler.CollectTags(bp, db).Contains("ranged") ? "ranged" : "melee")}", "sub"));
+                var gait = Gait.Of(bp, db);
+                text.Add(L($"{body?.displayName} · {UnitAssembler.DescribeAttack(bp, db)}{(gait.CanMove ? "" : " · can't move")}", "sub"));
                 var statLine = Add(text, "chips");
                 foreach (var s in new[] { StatType.MaxHealth, StatType.Attack, StatType.Defense, StatType.Speed })
                 {
