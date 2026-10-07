@@ -1,0 +1,230 @@
+.root {
+    flex-grow: 1;
+    flex-direction: row;
+    color: rgb(226, 230, 236);
+    font-size: 14px;
+}
+
+.panel {
+    background-color: rgb(24, 27, 33);
+    padding: 14px;
+}
+
+.side {
+    width: 280px;
+    border-right-width: 1px;
+    border-right-color: rgb(44, 49, 58);
+}
+
+.side-right {
+    width: 360px;
+    border-left-width: 1px;
+    border-left-color: rgb(44, 49, 58);
+}
+
+.center {
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+.header {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(44, 49, 58);
+}
+
+.footer {
+    border-top-width: 1px;
+    border-top-color: rgb(44, 49, 58);
+}
+
+.preview {
+    flex-grow: 1;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 10px;
+}
+
+.hint {
+    color: rgba(226, 230, 236, 0.55);
+    font-size: 12px;
+}
+
+.title {
+    font-size: 18px;
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+}
+
+.section {
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: rgb(140, 150, 165);
+    margin-top: 14px;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+}
+
+.row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 34px;
+    padding: 4px 8px;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    background-color: rgb(33, 37, 45);
+    border-width: 1px;
+    border-color: rgb(33, 37, 45);
+}
+
+.row:hover {
+    border-color: rgb(70, 78, 92);
+}
+
+.row.selected {
+    border-color: rgb(255, 204, 51);
+    background-color: rgb(48, 44, 30);
+}
+
+.row.dim {
+    opacity: 0.45;
+}
+
+.grow {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.sub {
+    font-size: 12px;
+    color: rgb(150, 160, 175);
+}
+
+.empty {
+    color: rgb(110, 118, 130);
+    -unity-font-style: italic;
+}
+
+.count {
+    -unity-font-style: bold;
+    margin-left: 6px;
+    margin-right: 6px;
+}
+
+.cost {
+    color: rgb(102, 204, 255);
+    margin-left: 6px;
+    margin-right: 6px;
+}
+
+.warn {
+    color: rgb(255, 170, 90);
+    font-size: 12px;
+}
+
+.error {
+    color: rgb(255, 110, 110);
+    margin-top: 6px;
+}
+
+Button {
+    margin: 0 0 0 6px;
+    padding: 4px 10px;
+    border-radius: 5px;
+    border-width: 0;
+    background-color: rgb(58, 66, 80);
+    color: rgb(226, 230, 236);
+}
+
+Button:hover {
+    background-color: rgb(78, 88, 106);
+}
+
+Button:disabled {
+    opacity: 0.35;
+}
+
+Button.primary {
+    background-color: rgb(40, 120, 180);
+}
+
+Button.primary:hover {
+    background-color: rgb(52, 140, 205);
+}
+
+Button.danger {
+    background-color: rgb(120, 46, 46);
+}
+
+Button.danger:hover {
+    background-color: rgb(150, 56, 56);
+}
+
+Button.confirm {
+    background-color: rgb(200, 60, 60);
+}
+
+Button.chip {
+    margin: 0 6px 6px 0;
+}
+
+Button.chip.selected {
+    background-color: rgb(150, 120, 30);
+}
+
+TextField {
+    min-width: 200px;
+    margin-right: 12px;
+}
+
+.energy-track {
+    height: 14px;
+    border-radius: 7px;
+    background-color: rgb(40, 45, 54);
+    margin-top: 4px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.energy-fill {
+    height: 100%;
+    background-color: rgb(102, 204, 255);
+    border-radius: 7px;
+}
+
+.energy-fill.full {
+    background-color: rgb(255, 204, 51);
+}
+
+.stats {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.stat {
+    width: 20%;
+    min-width: 110px;
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 20px;
+    -unity-font-style: bold;
+}
+
+.up {
+    color: rgb(110, 220, 130);
+}
+
+.down {
+    color: rgb(255, 110, 110);
+}
+
+TextField .unity-base-text-field__input {
+    background-color: rgb(33, 37, 45);
+    border-color: rgb(70, 78, 92);
+    color: rgb(226, 230, 236);
+    padding: 4px 8px;
+}
