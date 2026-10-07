@@ -22,6 +22,10 @@ namespace RougeLike.Battle
         [SerializeField] List<EnemyWave> waves = new();
         [SerializeField] string builderScene = "Builder";
 
+        [Header("Projectiles")]
+        [SerializeField] Mesh boulderMesh;
+        [SerializeField] Material boulderMaterial;
+
         [Header("Field")]
         [SerializeField] Vector2 fieldSize = new(15f, 10f);
         [Tooltip("Half-width of the strip in the middle where nobody can be placed.")]
@@ -33,6 +37,8 @@ namespace RougeLike.Battle
         public event Action Changed;
 
         public ContentDatabase Database => database;
+        public Mesh BoulderMesh => boulderMesh;
+        public Material BoulderMaterial => boulderMaterial;
         public BattlePhase Phase { get; private set; } = BattlePhase.Placement;
         public EnemyWave Wave { get; private set; }
         public int BattleNumber => RunState.BattlesWon + 1;
@@ -217,6 +223,8 @@ namespace RougeLike.Battle
         }
 
         /// <summary>Feedback for a landed hit: a spark, and a camera shake that grows with the knock.</summary>
+        public void Shake(float amount) => shake = Mathf.Min(0.4f, shake + amount);
+
         public void OnHit(Vector3 point, float knock, Team victim)
         {
             BattleEffects.Spark(point, 0.25f + knock * 0.06f, victim == Team.Player ? playerColor : enemyColor);

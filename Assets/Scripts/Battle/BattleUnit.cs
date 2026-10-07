@@ -14,7 +14,7 @@ namespace RougeLike.Battle
     [RequireComponent(typeof(Rigidbody))]
     public class BattleUnit : MonoBehaviour
     {
-        const float AttackInterval = 1f;
+        const float AttackInterval = 1f, ThrowInterval = 2.4f;
         const float RetargetInterval = 0.5f;
 
         // Movement and balance, as accelerations so heavy and light bodies behave alike.
@@ -36,6 +36,8 @@ namespace RougeLike.Battle
         public Team Team => Unit.Team;
         public bool IsAlive => Unit != null && Unit.IsAlive;
         public bool IsRanged { get; private set; }
+        /// <summary>Has a part tagged "thrower": lobs boulders instead of spitting or biting.</summary>
+        public bool IsThrower { get; private set; }
         public float Radius { get; private set; }
         public float Mass => body.mass;
         public Rigidbody Body => body;
@@ -44,6 +46,7 @@ namespace RougeLike.Battle
 
         public Vector3 CenterPosition => body.worldCenterOfMass;
         public Vector3 MuzzlePosition => transform.position + transform.rotation * new Vector3(0f, height * 0.6f, Radius);
+        public Vector3 ThrowOrigin => transform.position + transform.rotation * new Vector3(0f, height + 0.3f, 0.2f);
 
         BattleManager battle;
         Rigidbody body;
@@ -87,6 +90,7 @@ namespace RougeLike.Battle
             visual = unit.transform;
             visualScale = visual.localScale;
             IsRanged = unit.Tags.Contains("ranged");
+            IsThrower = unit.Tags.Contains("thrower");
 
             // Size from the model: a box around the body (limbs trimmed a little) is the hit shape.
             var renderers = visual.GetComponentsInChildren<Renderer>();
@@ -177,7 +181,7 @@ namespace RougeLike.Battle
                 if (attackTimer <= 0f && balance > 0.15f)
                 {
                     Attack(target);
-                    attackTimer = AttackInterval;
+                    attackTimer = IsThrower ? ThrowInterval : AttackInterval;
                 }
             }
             else
@@ -191,6 +195,12 @@ namespace RougeLike.Battle
 
         void Attack(BattleUnit t)
         {
+            if (IsThrower)
+            {
+                Boulder.Throw(this, t, Unit.Stats.Get(StatType.Attack), battle.BoulderMesh, battle.BoulderMaterial);
+                body.AddForce(-transform.forward * 1.5f + Vector3.up * 0.5f, ForceMode.VelocityChange); // heave
+                return;
+            }
             if (IsRanged)
             {
                 Projectile.Fire(this, t, Unit.Stats.Get(StatType.Attack), new Color(0.55f, 1f, 0.3f));
@@ -219,9 +229,10 @@ namespace RougeLike.Battle
 
         /// <summary>
         /// Deals damage and shoves the unit. Knock is a speed in m/s; it's applied above the centre of
-        /// mass so strong hits tip the target over as well as pushing it back.
+        /// mass so strong hits tip the target over as well as pushing it back. Knock-down hits (boulders)
+        /// also flip the unit so it goes over whatever its shape.
         /// </summary>
-        public void Hit(float damage, Vector3 dir, float knock, Vector3 point)
+        public void Hit(float damage, Vector3 dir, float knock, Vector3 point, bool knockDown = false)
         {
             if (!IsAlive) return;
             Unit.TakeDamage(damage);
@@ -235,6 +246,11 @@ namespace RougeLike.Battle
                 var high = new Vector3(point.x, Mathf.Max(point.y, body.worldCenterOfMass.y + height * 0.25f), point.z);
                 body.AddForceAtPosition(impulse, high, ForceMode.Impulse);
                 balance = Mathf.Max(0f, balance - knock / 6f);
+                if (knockDown && dir != Vector3.zero)
+                {
+                    balance = 0f;
+                    body.AddTorque(Vector3.Cross(Vector3.up, dir) * 7f, ForceMode.VelocityChange);
+                }
             }
             battle.OnHit(point, knock, Team);
             if (!IsAlive) Die(dir * knock);

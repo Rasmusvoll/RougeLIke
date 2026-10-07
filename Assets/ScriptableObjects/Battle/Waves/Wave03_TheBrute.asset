@@ -15,15 +15,15 @@ MonoBehaviour:
   displayName: The Brute
   units:
   - blueprint:
-      name: Brute
+      name: Boulder Brute
       bodyId: body_brute
       parts:
       - slotId: arm_left
         partId: part_pincer
-      - slotId: arm_right
-        partId: part_pincer
       - slotId: back
         partId: part_shell
+      - slotId: arm_right
+        partId: part_boulder_arm
     position: {x: 0, y: 2.8}
   - blueprint:
       name: Spitter

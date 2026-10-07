@@ -43,4 +43,7 @@ MonoBehaviour:
   - kind: 2
     content: {fileID: 11400000, guid: 9a78dc805472d3841a7ba2e539be5f19, type: 2}
     weight: 2
+  - kind: 1
+    content: {fileID: 11400000, guid: 1f771cd4f174f8a4f90dbca505877bf1, type: 2}
+    weight: 1
   offerCount: 3
