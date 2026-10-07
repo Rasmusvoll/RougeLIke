@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3308283777fe0e7498e48398fcc0798d, type: 3}
+  m_Name: Crawler
+  m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Units.BodyDefinition
+  id: body_crawler
+  displayName: Crawler
+  icon: {fileID: 0}
+  rarity: 0
+  prefab: {fileID: 0}
+  baseStats:
+  - stat: 0
+    value: 80
+  - stat: 1
+    value: 8
+  - stat: 2
+    value: 2
+  - stat: 3
+    value: 4
+  - stat: 4
+    value: 1
+  slots:
+  - slotId: head
+    type: 0
+    localPosition: {x: 0.6, y: 0.3, z: 0}
+  - slotId: arm_left
+    type: 1
+    localPosition: {x: 0.3, y: -0.2, z: 0}
+  - slotId: arm_right
+    type: 1
+    localPosition: {x: 0.3, y: 0.2, z: 0}
+  - slotId: leg_left
+    type: 2
+    localPosition: {x: -0.3, y: -0.4, z: 0}
+  - slotId: leg_right
+    type: 2
+    localPosition: {x: -0.3, y: 0.4, z: 0}
+  energy: 8
+  innateAbilities: []

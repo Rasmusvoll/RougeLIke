@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc92b0c77ecda9e41a55f9c4224c30bb, type: 3}
+  m_Name: StarterSet
+  m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Units.StarterSet
+  bodies:
+  - {fileID: 11400000, guid: f542923e513179c4f8ec50c65f4e3779, type: 2}
+  parts:
+  - part: {fileID: 11400000, guid: 650ba7a8db5f9b942b0219a2257fa981, type: 2}
+    count: 2
+  - part: {fileID: 11400000, guid: 7c0bd393a3109834490b4bc977cdbf2d, type: 2}
+    count: 1
+  - part: {fileID: 11400000, guid: f9e0522d2a11649489318fb5cbb7cd4b, type: 2}
+    count: 2
+  buffs: []

@@ -32,7 +32,10 @@ namespace RougeLike.Units
         {
             if (string.IsNullOrEmpty(id)) return null;
             lookup ??= BuildLookup(list);
-            return lookup.TryGetValue(id, out var d) ? d : null;
+            if (lookup.TryGetValue(id, out var d)) return d;
+            // The lists may have changed since the lookup was built (e.g. filled from code): rebuild once on a miss.
+            lookup = BuildLookup(list);
+            return lookup.TryGetValue(id, out d) ? d : null;
         }
 
         static Dictionary<string, T> BuildLookup<T>(List<T> list) where T : ContentDefinition
