@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Pincer
   icon: {fileID: 0}
   rarity: 1
-  prefab: {fileID: 0}
+  prefab: {fileID: 919132149155446097, guid: dd0d0e33f93b8314182b5b1bb95036a3, type: 3}
   fitsSlot: 1
   energyCost: 3
   modifiers:

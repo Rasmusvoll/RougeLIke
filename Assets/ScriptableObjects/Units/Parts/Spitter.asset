@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Acid Spitter
   icon: {fileID: 0}
   rarity: 1
-  prefab: {fileID: 0}
+  prefab: {fileID: 919132149155446097, guid: 4aef2bfb14c5d12448e0a903ac324f15, type: 3}
   fitsSlot: 0
   energyCost: 3
   modifiers:

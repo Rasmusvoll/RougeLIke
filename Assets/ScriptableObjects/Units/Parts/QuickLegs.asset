@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Quick Legs
   icon: {fileID: 0}
   rarity: 0
-  prefab: {fileID: 0}
+  prefab: {fileID: 919132149155446097, guid: f66e69f387619cc4fb4c5b368030a99e, type: 3}
   fitsSlot: 2
   energyCost: 1
   modifiers:

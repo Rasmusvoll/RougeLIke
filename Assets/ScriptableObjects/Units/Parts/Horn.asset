@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Horn
   icon: {fileID: 0}
   rarity: 0
-  prefab: {fileID: 0}
+  prefab: {fileID: 919132149155446097, guid: bddfcb6adaa0cf141aaa7ae66be0ae30, type: 3}
   fitsSlot: 0
   energyCost: 2
   modifiers:

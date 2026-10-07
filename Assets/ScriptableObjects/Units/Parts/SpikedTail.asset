@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Spiked Tail
   icon: {fileID: 0}
   rarity: 1
-  prefab: {fileID: 0}
+  prefab: {fileID: 919132149155446097, guid: a2f871e11cedab94ca5e221eecbcc3cd, type: 3}
   fitsSlot: 4
   energyCost: 2
   modifiers:

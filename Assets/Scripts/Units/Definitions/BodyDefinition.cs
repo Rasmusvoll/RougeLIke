@@ -12,6 +12,8 @@ namespace RougeLike.Units
         public SlotType type;
         [Tooltip("Attach point relative to the body prefab root.")]
         public Vector3 localPosition;
+        [Tooltip("Flip the part across X. Parts are modelled for the right side, so left slots set this.")]
+        public bool mirror;
     }
 
     [CreateAssetMenu(menuName = "Units/Body")]

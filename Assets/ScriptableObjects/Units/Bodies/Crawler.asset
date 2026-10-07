@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Crawler
   icon: {fileID: 0}
   rarity: 0
-  prefab: {fileID: 0}
+  prefab: {fileID: 919132149155446097, guid: bfe2ebc25f63981499bcdc06d2ef7b6a, type: 3}
   baseStats:
   - stat: 0
     value: 80
@@ -31,18 +31,23 @@ MonoBehaviour:
   slots:
   - slotId: head
     type: 0
-    localPosition: {x: 0.6, y: 0.3, z: 0}
+    localPosition: {x: 0, y: 0.38, z: 0.58}
+    mirror: 0
   - slotId: arm_left
     type: 1
-    localPosition: {x: 0.3, y: -0.2, z: 0}
+    localPosition: {x: -0.32, y: 0.38, z: 0.3}
+    mirror: 1
   - slotId: arm_right
     type: 1
-    localPosition: {x: 0.3, y: 0.2, z: 0}
+    localPosition: {x: 0.32, y: 0.38, z: 0.3}
+    mirror: 0
   - slotId: leg_left
     type: 2
-    localPosition: {x: -0.3, y: -0.4, z: 0}
+    localPosition: {x: -0.34, y: 0.32, z: -0.2}
+    mirror: 1
   - slotId: leg_right
     type: 2
-    localPosition: {x: -0.3, y: 0.4, z: 0}
+    localPosition: {x: 0.34, y: 0.32, z: -0.2}
+    mirror: 0
   energy: 8
   innateAbilities: []

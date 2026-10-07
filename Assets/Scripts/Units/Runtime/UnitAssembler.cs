@@ -75,7 +75,9 @@ namespace RougeLike.Units
                     if (!tags.Contains(t)) tags.Add(t);
                 if (part.prefab == null) continue;
                 var go = Object.Instantiate(part.prefab, root.transform);
-                go.transform.localPosition = body.GetSlot(a.slotId).localPosition;
+                var slot = body.GetSlot(a.slotId);
+                go.transform.localPosition = slot.localPosition;
+                if (slot.mirror) go.transform.localScale = Vector3.Scale(go.transform.localScale, new Vector3(-1f, 1f, 1f));
                 go.name = $"{a.slotId}: {part.displayName}";
             }
 

@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Claw
   icon: {fileID: 0}
   rarity: 0
-  prefab: {fileID: 0}
+  prefab: {fileID: 919132149155446097, guid: aa6b62e51a2ba16428fb21b329116a64, type: 3}
   fitsSlot: 1
   energyCost: 2
   modifiers:

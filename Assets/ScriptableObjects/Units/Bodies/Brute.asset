@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Brute
   icon: {fileID: 0}
   rarity: 1
-  prefab: {fileID: 0}
+  prefab: {fileID: 919132149155446097, guid: e5cc598f8516ca54aa3cd9d82fd4f2fc, type: 3}
   baseStats:
   - stat: 0
     value: 140
@@ -31,18 +31,23 @@ MonoBehaviour:
   slots:
   - slotId: head
     type: 0
-    localPosition: {x: 0.8, y: 0.5, z: 0}
+    localPosition: {x: 0, y: 1.05, z: 0.7}
+    mirror: 0
   - slotId: arm_left
     type: 1
-    localPosition: {x: 0.4, y: -0.4, z: 0}
+    localPosition: {x: -0.55, y: 0.85, z: 0.35}
+    mirror: 1
   - slotId: arm_right
     type: 1
-    localPosition: {x: 0.4, y: 0.4, z: 0}
+    localPosition: {x: 0.55, y: 0.85, z: 0.35}
+    mirror: 0
   - slotId: back
     type: 3
-    localPosition: {x: 0, y: 0.6, z: 0}
+    localPosition: {x: 0, y: 1.2, z: -0.1}
+    mirror: 0
   - slotId: tail
     type: 4
-    localPosition: {x: -0.8, y: 0, z: 0}
+    localPosition: {x: 0, y: 0.75, z: -0.62}
+    mirror: 0
   energy: 10
   innateAbilities: []

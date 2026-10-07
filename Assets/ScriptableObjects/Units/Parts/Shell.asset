@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Shell
   icon: {fileID: 0}
   rarity: 2
-  prefab: {fileID: 0}
+  prefab: {fileID: 919132149155446097, guid: 780deddf8225c854baa2610413150495, type: 3}
   fitsSlot: 3
   energyCost: 3
   modifiers:
