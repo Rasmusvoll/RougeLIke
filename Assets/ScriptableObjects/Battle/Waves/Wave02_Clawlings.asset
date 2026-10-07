@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a0463e2d9dc6f14dba620ee75cc0f2c, type: 3}
+  m_Name: Wave02_Clawlings
+  m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Battle.EnemyWave
+  displayName: Clawlings
+  units:
+  - blueprint:
+      name: Clawling
+      bodyId: body_crawler
+      parts:
+      - slotId: arm_left
+        partId: part_claw
+      - slotId: arm_right
+        partId: part_claw
+    position: {x: -2.5, y: 2.6}
+  - blueprint:
+      name: Horned Runner
+      bodyId: body_crawler
+      parts:
+      - slotId: head
+        partId: part_horn
+      - slotId: leg_left
+        partId: part_quick_legs
+      - slotId: leg_right
+        partId: part_quick_legs
+    position: {x: 2.5, y: 2.6}
+  - blueprint:
+      name: Spitter
+      bodyId: body_crawler
+      parts:
+      - slotId: head
+        partId: part_spitter
+    position: {x: 0, y: 4.2}
+  buffs: []

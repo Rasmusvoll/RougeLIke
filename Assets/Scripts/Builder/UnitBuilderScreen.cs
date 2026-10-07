@@ -18,6 +18,7 @@ namespace RougeLike.Builder
         [SerializeField] StarterSet starterSet;
         [SerializeField] UnitPreview preview;
         [SerializeField] StyleSheet styleSheet;
+        [SerializeField] string battleScene = "Battle";
 
         BuilderSession session;
         public BuilderSession Session => session;
@@ -26,7 +27,7 @@ namespace RougeLike.Builder
         Label energyLabel, partsTitle, messageLabel, unitTitle;
         TextField nameField;
         VisualElement bodySwitch;
-        Button deleteButton;
+        Button deleteButton, battleButton;
 
         // Irreversible actions (scrap, delete, body swap) ask for a second click on the same button.
         string pendingConfirm;
@@ -73,6 +74,14 @@ namespace RougeLike.Builder
             bodyList = Add(left);
             Section(left, "RUN BUFFS");
             buffList = Add(left);
+            battleButton = new Button(GoToBattle) { text = $"Go to battle {RunState.BattlesWon + 1}" };
+            battleButton.AddToClassList("primary");
+            battleButton.style.marginLeft = 0;
+            battleButton.style.marginTop = 14;
+            battleButton.style.paddingTop = battleButton.style.paddingBottom = 8;
+            battleButton.style.fontSize = 16;
+            battleButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+            left.Add(battleButton);
             if (Debug.isDebugBuild)
             {
                 Section(left, "DEBUG");
@@ -133,6 +142,7 @@ namespace RougeLike.Builder
             RefreshUnits();
             RefreshBodies();
             RefreshBuffs();
+            battleButton.SetEnabled(session.Collection.blueprints.Exists(b => UnitAssembler.Validate(b, database, out _)));
 
             unitTitle.text = body != null ? body.displayName : "No unit";
             nameField.style.display = bp != null ? DisplayStyle.Flex : DisplayStyle.None;
@@ -395,6 +405,8 @@ namespace RougeLike.Builder
             b.text = armed ? confirm : normal;
             b.EnableInClassList("confirm", armed);
         }
+
+        void GoToBattle() => UnityEngine.SceneManagement.SceneManager.LoadScene(battleScene);
 
         void GrantAllContent()
         {

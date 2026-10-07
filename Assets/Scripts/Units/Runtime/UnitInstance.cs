@@ -27,7 +27,8 @@ namespace RougeLike.Units
 
         public void TakeDamage(float amount)
         {
-            float dmg = Mathf.Max(0f, amount - Stats.Get(StatType.Defense));
+            // Always at least 1 so heavy armour can't stall a battle forever.
+            float dmg = Mathf.Max(1f, amount - Stats.Get(StatType.Defense));
             CurrentHealth = Mathf.Max(0f, CurrentHealth - dmg);
         }
 

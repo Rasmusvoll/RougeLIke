@@ -1,0 +1,76 @@
+.battle-root {
+    flex-grow: 1;
+    flex-direction: column;
+    color: rgb(226, 230, 236);
+    font-size: 14px;
+}
+
+.battle-top {
+    flex-direction: row;
+    align-items: center;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(44, 49, 58);
+    background-color: rgba(24, 27, 33, 0.97);
+}
+
+.battle-middle {
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+}
+
+.battle-hint {
+    position: absolute;
+    bottom: 10px;
+    color: rgb(226, 230, 236);
+    background-color: rgba(16, 18, 22, 0.75);
+    border-radius: 12px;
+    padding: 4px 12px;
+    font-size: 13px;
+}
+
+.battle-bottom {
+    flex-shrink: 0;
+    border-top-width: 1px;
+    border-top-color: rgb(44, 49, 58);
+    background-color: rgba(24, 27, 33, 0.97);
+    padding-top: 10px;
+    padding-bottom: 8px;
+}
+
+.battle-cards {
+    flex-shrink: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding-top: 8px;
+}
+
+.battle-card {
+    width: 230px;
+    margin-right: 8px;
+    padding: 8px 10px;
+    align-items: flex-start;
+}
+
+.battle-result {
+    min-width: 340px;
+    max-width: 440px;
+    align-items: center;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: rgb(70, 78, 92);
+    padding: 24px;
+}
+
+.battle-result-title {
+    font-size: 36px;
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+}
+
+Button.big {
+    font-size: 16px;
+    padding: 8px 18px;
+    -unity-font-style: bold;
+}
+
