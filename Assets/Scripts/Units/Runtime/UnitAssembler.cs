@@ -72,8 +72,9 @@ namespace RougeLike.Units
         }
 
         /// <summary>
-        /// Spawns the body model with each part at its slot's attach point, without any gameplay
-        /// components. Used by Build and by the unit builder's preview. Skips parts in unknown slots.
+        /// Spawns the body model with each part at its slot's attach point, plus a UnitAnimator to
+        /// move them, without any gameplay components. Used by Build and by the unit builder's
+        /// preview. Skips parts in unknown slots.
         /// </summary>
         public static GameObject SpawnVisual(UnitBlueprint bp, ContentDatabase db, Transform parent)
         {
@@ -91,6 +92,7 @@ namespace RougeLike.Units
                 root.transform.SetParent(parent, false);
             }
             root.name = string.IsNullOrEmpty(bp.name) ? body.displayName : bp.name;
+            var animator = root.AddComponent<UnitAnimator>();
 
             foreach (var a in bp.parts)
             {
@@ -101,6 +103,7 @@ namespace RougeLike.Units
                 go.transform.localPosition = slot.localPosition;
                 if (slot.mirror) go.transform.localScale = Vector3.Scale(go.transform.localScale, new Vector3(-1f, 1f, 1f));
                 go.name = $"{a.slotId}: {part.displayName}";
+                animator.AddLimb(go.transform, a.slotId, slot.type, slot.mirror, part.tags, slot.localPosition);
             }
             return root;
         }

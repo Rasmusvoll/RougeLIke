@@ -22,9 +22,15 @@ namespace RougeLike.Builder
         [SerializeField] GameObject standPrefab;
         [SerializeField] float standHeight = 0.42f;
         [SerializeField] float standScale = 1.5f;
+        [Tooltip("Seconds between idle show-offs, where the unit tries out one of its parts.")]
+        [SerializeField] float showOffInterval = 5f;
 
         Transform pivot;
         GameObject model;
+        UnitAnimator animator;
+        UnitBlueprint shownBlueprint;
+        readonly Dictionary<string, string> shownParts = new();
+        float nextShowOff;
         readonly Dictionary<string, Renderer> markers = new();
         MaterialPropertyBlock block;
         float yaw = 150f;
@@ -54,6 +60,12 @@ namespace RougeLike.Builder
             if (Time.unscaledTime - lastInteraction > idleDelay) yaw += idleSpinSpeed * Time.unscaledDeltaTime;
             pivot.localRotation = Quaternion.Euler(0f, yaw, 0f);
 
+            if (animator != null && Time.unscaledTime >= nextShowOff)
+            {
+                animator.FlourishRandom();
+                nextShowOff = Time.unscaledTime + showOffInterval * Random.Range(0.8f, 1.3f);
+            }
+
             if (previewCamera != null)
             {
                 var rot = Quaternion.Euler(pitch, 0f, 0f);
@@ -72,7 +84,10 @@ namespace RougeLike.Builder
             if (model != null) Destroy(model);
             markers.Clear();
             model = bp != null ? UnitAssembler.SpawnVisual(bp, db, pivot) : null;
-            if (model == null) return;
+            animator = model != null ? model.GetComponent<UnitAnimator>() : null;
+            if (model == null) { shownBlueprint = null; return; }
+            animator.UnscaledTime = true;
+            ShowOffNewParts(bp);
 
             var body = db.GetBody(bp.bodyId);
             foreach (var slot in body.slots)
@@ -92,6 +107,24 @@ namespace RougeLike.Builder
             }
             Highlight(bp, selectedSlotId);
             Frame();
+        }
+
+        /// <summary>When a part is put on the unit being shown, the unit tries it out straight away.</summary>
+        void ShowOffNewParts(UnitBlueprint bp)
+        {
+            bool sameUnit = bp == shownBlueprint;
+            string changed = null;
+            foreach (var a in bp.parts)
+                if (sameUnit && (!shownParts.TryGetValue(a.slotId, out var old) || old != a.partId))
+                    changed = a.slotId;
+            shownBlueprint = bp;
+            shownParts.Clear();
+            foreach (var a in bp.parts) shownParts[a.slotId] = a.partId;
+
+            if (changed != null && animator.Flourish(changed))
+                nextShowOff = Time.unscaledTime + showOffInterval;
+            else if (!sameUnit)
+                nextShowOff = Time.unscaledTime + 1.2f;
         }
 
         void Highlight(UnitBlueprint bp, string selectedSlotId)

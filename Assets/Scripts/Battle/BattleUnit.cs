@@ -52,7 +52,7 @@ namespace RougeLike.Battle
         Rigidbody body;
         BoxCollider box;
         Transform visual, overlay;
-        Vector3 visualScale;
+        UnitAnimator anim;
         HealthBar bar;
         float height;
 
@@ -60,7 +60,7 @@ namespace RougeLike.Battle
         float attackTimer, retargetTimer;
         readonly Dictionary<AbilityDefinition, float> abilityTimers = new();
 
-        float balance = 1f, toppledUntil = -1f, walkPhase, squash;
+        float balance = 1f, toppledUntil = -1f, walkPhase;
         bool gettingUp;
         BattleUnit pendingHit;
         float pendingHitTime;
@@ -88,7 +88,7 @@ namespace RougeLike.Battle
             Unit = unit;
             battle = b;
             visual = unit.transform;
-            visualScale = visual.localScale;
+            anim = visual.GetComponent<UnitAnimator>();
             IsRanged = unit.Tags.Contains("ranged");
             IsThrower = unit.Tags.Contains("thrower");
 
@@ -183,6 +183,9 @@ namespace RougeLike.Battle
                     Attack(target);
                     attackTimer = IsThrower ? ThrowInterval : AttackInterval;
                 }
+                // Anticipation over the last moment before each attack.
+                if (balance > 0.15f && anim != null)
+                    anim.SetWindup(AttackKind, 1f - attackTimer / UnitAnimator.WindupTime(AttackKind));
             }
             else
             {
@@ -193,8 +196,11 @@ namespace RougeLike.Battle
         /// <summary>Distance between body edges at which this unit can attack.</summary>
         float Reach => Mathf.Max(0.35f, Unit.Stats.Get(StatType.Range) - 0.6f);
 
+        AttackKind AttackKind => IsThrower ? AttackKind.Throw : IsRanged ? AttackKind.Spit : AttackKind.Melee;
+
         void Attack(BattleUnit t)
         {
+            if (anim != null) anim.Strike(AttackKind);
             if (IsThrower)
             {
                 Boulder.Throw(this, t, Unit.Stats.Get(StatType.Attack), battle.BoulderMesh, battle.BoulderMaterial);
@@ -237,7 +243,7 @@ namespace RougeLike.Battle
             if (!IsAlive) return;
             Unit.TakeDamage(damage);
             bar.Set(Unit.CurrentHealth / Mathf.Max(1f, Unit.Stats.Get(StatType.MaxHealth)));
-            squash = 1f;
+            if (anim != null) anim.Flinch();
 
             dir = Flat(dir).normalized;
             if (!body.isKinematic)
@@ -262,6 +268,7 @@ namespace RougeLike.Battle
             overlay.gameObject.SetActive(false);
             box.material = Grippy;
             body.angularDamping = 0.5f;
+            if (anim != null) anim.Freeze();
             // Ragdoll-ish: the body goes limp and the parts break off and fly.
             body.AddTorque(Random.onUnitSphere * 4f, ForceMode.VelocityChange);
             BreakOffParts(push);
@@ -391,10 +398,13 @@ namespace RougeLike.Battle
                 var p = transform.position;
                 overlay.SetPositionAndRotation(new Vector3(p.x, Mathf.Max(0f, p.y), p.z), Quaternion.identity);
             }
-            // A quick squash when hit.
-            squash = Mathf.MoveTowards(squash, 0f, Time.deltaTime * 6f);
-            float s = 1f - squash * 0.15f;
-            visual.localScale = Vector3.Scale(visualScale, new Vector3(1f / s, s, 1f / s));
+            // Feed the animator: walk from the body's velocity, look at the target, flail when down.
+            if (anim != null && anim.enabled)
+            {
+                anim.SetMotion(body.isKinematic ? Vector3.zero : body.linearVelocity, Grounded);
+                anim.SetLookTarget(target != null && target.IsAlive ? target.CenterPosition : null);
+                anim.Flailing = Toppled && Time.time < toppledUntil;
+            }
         }
 
         /// <summary>A box collider around all of an object's meshes (they may sit on child objects).</summary>
