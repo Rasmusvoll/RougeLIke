@@ -22,11 +22,11 @@ namespace RougeLike.Battle
             return m;
         }
 
-        public static GameObject Primitive(PrimitiveType type, string name, Transform parent, Material mat)
+        public static GameObject Primitive(PrimitiveType type, string name, Transform parent, Material mat, bool keepCollider = false)
         {
             var go = GameObject.CreatePrimitive(type);
             go.name = name;
-            Object.Destroy(go.GetComponent<Collider>());
+            if (!keepCollider) Object.Destroy(go.GetComponent<Collider>());
             go.transform.SetParent(parent, false);
             go.GetComponent<Renderer>().sharedMaterial = mat;
             return go;

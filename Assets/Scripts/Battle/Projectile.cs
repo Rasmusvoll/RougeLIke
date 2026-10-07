@@ -2,34 +2,66 @@ using UnityEngine;
 
 namespace RougeLike.Battle
 {
-    /// <summary>A glob fired by a ranged unit. Homes on its target and deals damage on arrival.</summary>
+    /// <summary>
+    /// A glob of acid lobbed in an arc by a ranged unit. It's a real rigidbody: it hits whatever it
+    /// lands on, damages and shoves enemy units, and splats on the ground.
+    /// </summary>
+    [RequireComponent(typeof(Rigidbody))]
     public class Projectile : MonoBehaviour
     {
-        const float Speed = 11f;
+        const float Knock = 1.6f, KnockPerDamage = 0.08f;
 
-        BattleUnit source, target;
+        BattleUnit source;
         float damage;
-        Vector3 lastTargetPos;
+        bool spent;
+        Vector3 lastVelocity;
+
+        void FixedUpdate() => lastVelocity = GetComponent<Rigidbody>().linearVelocity;
 
         public static void Fire(BattleUnit source, BattleUnit target, float damage, Color color)
         {
-            var go = BattleVisuals.Primitive(PrimitiveType.Sphere, "Projectile", null, BattleVisuals.Unlit(color));
+            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            go.name = "Projectile";
+            go.GetComponent<Renderer>().sharedMaterial = BattleVisuals.Unlit(color);
             go.transform.position = source.MuzzlePosition;
             go.transform.localScale = Vector3.one * 0.22f;
+            var col = go.GetComponent<Collider>();
+            Physics.IgnoreCollision(col, source.GetComponent<Collider>());
+
+            var rb = go.AddComponent<Rigidbody>();
+            rb.mass = 0.2f;
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
+
+            // Lob it so it lands where the target will roughly be.
+            var aim = target.CenterPosition + target.Body.linearVelocity * 0.3f;
+            var from = go.transform.position;
+            var flat = new Vector3(aim.x - from.x, 0f, aim.z - from.z);
+            float time = Mathf.Clamp(flat.magnitude / 9f, 0.25f, 0.9f);
+            var g = Physics.gravity;
+            rb.linearVelocity = (aim - from - 0.5f * g * time * time) / time;
+
             var p = go.AddComponent<Projectile>();
             p.source = source;
-            p.target = target;
             p.damage = damage;
-            p.lastTargetPos = target.CenterPosition;
+            p.lastVelocity = rb.linearVelocity;
+            Destroy(go, 4f);
         }
 
-        void Update()
+        void OnCollisionEnter(Collision c)
         {
-            if (target != null && target.IsAlive) lastTargetPos = target.CenterPosition;
-            transform.position = Vector3.MoveTowards(transform.position, lastTargetPos, Speed * Time.deltaTime);
-            if ((transform.position - lastTargetPos).sqrMagnitude > 0.01f) return;
-            if (target != null && target.IsAlive)
-                target.Hit(damage, (lastTargetPos - (source != null ? source.transform.position : transform.position)).normalized);
+            if (spent) return;
+            spent = true;
+            var unit = c.collider.GetComponentInParent<BattleUnit>();
+            var point = c.GetContact(0).point;
+            if (unit != null && unit.IsAlive && (source == null || unit.Team != source.Team))
+            {
+                unit.Hit(damage, lastVelocity, Knock + damage * KnockPerDamage, point);
+            }
+            else
+            {
+                BattleEffects.Spark(point, 0.4f, new Color(0.55f, 1f, 0.3f));
+            }
             Destroy(gameObject);
         }
     }

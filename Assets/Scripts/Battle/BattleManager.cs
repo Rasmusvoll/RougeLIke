@@ -44,7 +44,9 @@ namespace RougeLike.Battle
 
         List<BuffDefinition> playerBuffs;
         GameObject playerZone, enemyZone;
-        float endTimer = -1f;
+        float endTimer = -1f, shake;
+        Camera cam;
+        Vector3 camHome;
         BattlePhase pendingResult;
 
         void Awake()
@@ -54,6 +56,8 @@ namespace RougeLike.Battle
             UnitRoot = new GameObject("Units").transform;
             UnitRoot.SetParent(transform, false);
             playerBuffs = UnitAssembler.ResolveBuffs(RunState.Collection.runBuffIds, database);
+            cam = Camera.main;
+            if (cam != null) camHome = cam.transform.position;
             BuildField();
             SpawnWave();
         }
@@ -68,9 +72,24 @@ namespace RougeLike.Battle
             var field = new GameObject("Field").transform;
             field.SetParent(transform, false);
 
-            var ground = BattleVisuals.Primitive(PrimitiveType.Cube, "Ground", field, BattleVisuals.Lit(groundColor));
+            var ground = BattleVisuals.Primitive(PrimitiveType.Cube, "Ground", field, BattleVisuals.Lit(groundColor), keepCollider: true);
             ground.transform.localPosition = new Vector3(0f, -0.25f, 0f);
             ground.transform.localScale = new Vector3(fieldSize.x + 2f, 0.5f, fieldSize.y + 2f);
+
+            // Invisible walls around the edge keep the fight on screen when units get shoved around.
+            foreach (var (pos, scale) in new[]
+            {
+                (new Vector3(0f, 1f, HalfD + 1.25f), new Vector3(fieldSize.x + 3f, 2f, 0.5f)),
+                (new Vector3(0f, 1f, -HalfD - 1.25f), new Vector3(fieldSize.x + 3f, 2f, 0.5f)),
+                (new Vector3(HalfW + 1.25f, 1f, 0f), new Vector3(0.5f, 2f, fieldSize.y + 3f)),
+                (new Vector3(-HalfW - 1.25f, 1f, 0f), new Vector3(0.5f, 2f, fieldSize.y + 3f)),
+            })
+            {
+                var wall = new GameObject("Wall").AddComponent<BoxCollider>();
+                wall.transform.SetParent(field, false);
+                wall.transform.localPosition = pos;
+                wall.size = scale;
+            }
 
             float zoneDepth = HalfD - noMansLand;
             float zoneCenter = noMansLand + zoneDepth * 0.5f;
@@ -178,6 +197,8 @@ namespace RougeLike.Battle
             Phase = BattlePhase.Fighting;
             playerZone.SetActive(false);
             enemyZone.SetActive(false);
+            foreach (var u in PlayerUnits) u.SetSimulated(true);
+            foreach (var u in EnemyUnits) u.SetSimulated(true);
             Changed?.Invoke();
         }
 
@@ -195,8 +216,16 @@ namespace RougeLike.Battle
             return best;
         }
 
+        /// <summary>Feedback for a landed hit: a spark, and a camera shake that grows with the knock.</summary>
+        public void OnHit(Vector3 point, float knock, Team victim)
+        {
+            BattleEffects.Spark(point, 0.25f + knock * 0.06f, victim == Team.Player ? playerColor : enemyColor);
+            shake = Mathf.Min(0.35f, shake + knock * 0.02f);
+        }
+
         public void OnUnitDied(BattleUnit u)
         {
+            shake = Mathf.Min(0.4f, shake + 0.15f);
             Changed?.Invoke();
             if (Phase != BattlePhase.Fighting || endTimer >= 0f) return;
             if (!EnemyUnits.Exists(e => e.IsAlive)) { pendingResult = BattlePhase.Victory; endTimer = 1.5f; }
@@ -205,44 +234,20 @@ namespace RougeLike.Battle
 
         void Update()
         {
-            if (Phase != BattlePhase.Fighting) return;
-            Separate();
-            if (endTimer >= 0f)
+            if (Phase != BattlePhase.Fighting || endTimer < 0f) return;
+            endTimer -= Time.deltaTime;
+            if (endTimer < 0f)
             {
-                endTimer -= Time.deltaTime;
-                if (endTimer < 0f)
-                {
-                    Phase = pendingResult;
-                    Changed?.Invoke();
-                }
+                Phase = pendingResult;
+                Changed?.Invoke();
             }
         }
 
-        /// <summary>Pushes overlapping living units apart and keeps them on the field.</summary>
-        void Separate()
+        void LateUpdate()
         {
-            var all = new List<BattleUnit>(PlayerUnits.Count + EnemyUnits.Count);
-            foreach (var u in PlayerUnits) if (u.IsAlive) all.Add(u);
-            foreach (var u in EnemyUnits) if (u.IsAlive) all.Add(u);
-            for (int i = 0; i < all.Count; i++)
-            for (int j = i + 1; j < all.Count; j++)
-            {
-                var a = all[i].transform;
-                var b = all[j].transform;
-                var d = b.position - a.position;
-                d.y = 0f;
-                float min = all[i].Radius + all[j].Radius;
-                float dist = d.magnitude;
-                if (dist >= min) continue;
-                var push = (dist > 0.001f ? d / dist : Vector3.right) * (min - dist) * 0.5f;
-                a.position -= push;
-                b.position += push;
-            }
-            foreach (var u in all)
-            {
-                var p = u.transform.position;
-                u.transform.position = new Vector3(Mathf.Clamp(p.x, -HalfW, HalfW), 0f, Mathf.Clamp(p.z, -HalfD, HalfD));
-            }
+            if (cam == null) return;
+            shake = Mathf.MoveTowards(shake, 0f, Time.unscaledDeltaTime * 1.5f);
+            cam.transform.position = camHome + UnityEngine.Random.insideUnitSphere * shake;
         }
 
         // Leaving

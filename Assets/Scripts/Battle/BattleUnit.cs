@@ -5,42 +5,62 @@ using UnityEngine;
 namespace RougeLike.Battle
 {
     /// <summary>
-    /// Drives one unit on the battlefield: walks to the nearest enemy, attacks when in reach, and plays
-    /// simple procedural animation (waddle, lunge, flinch, topple). Stats come from the UnitInstance
+    /// One physics-driven unit. It's a single rigidbody that keeps itself upright with a balance
+    /// torque (like TABS), walks by pushing itself toward the nearest enemy, and lunges to attack.
+    /// Hits shove the target and knock its balance out, so big hits make units stagger or fall over.
+    /// On death balance is switched off and the parts break away. Stats come from the UnitInstance
     /// that UnitAssembler builds as this object's child.
     /// </summary>
+    [RequireComponent(typeof(Rigidbody))]
     public class BattleUnit : MonoBehaviour
     {
         const float AttackInterval = 1f;
         const float RetargetInterval = 0.5f;
-        const float TurnSpeed = 540f;
+
+        // Movement and balance, as accelerations so heavy and light bodies behave alike.
+        const float MoveAccel = 14f;
+        const float UprightStrength = 50f, UprightDamping = 9f;
+        const float TurnStrength = 30f, TurnDamping = 7f;
+        const float BalanceRecovery = 1f;    // per second
+        const float ToppleAngle = 55f;        // tilt past this and the unit falls over
+        const float ToppleTime = 1.1f;        // seconds on the ground before getting up
+
+        // Hits.
+        const float MeleeKnock = 1.8f, MeleeKnockPerDamage = 0.09f, MaxKnock = 6.5f;
+        const float LungeSpeed = 3.5f;
+        const float HitDelay = 0.12f;         // lunge travels a moment before the blow lands
+
+        static PhysicsMaterial slippery, grippy;
 
         public UnitInstance Unit { get; private set; }
         public Team Team => Unit.Team;
         public bool IsAlive => Unit != null && Unit.IsAlive;
         public bool IsRanged { get; private set; }
         public float Radius { get; private set; }
+        public float Mass => body.mass;
+        public Rigidbody Body => body;
         /// <summary>Index into the player's blueprints, or -1 for enemies.</summary>
         public int BlueprintIndex { get; set; } = -1;
 
-        public Vector3 CenterPosition => transform.position + Vector3.up * height * 0.5f;
-        public Vector3 MuzzlePosition => transform.position + transform.forward * Radius + Vector3.up * height * 0.6f;
+        public Vector3 CenterPosition => body.worldCenterOfMass;
+        public Vector3 MuzzlePosition => transform.position + transform.rotation * new Vector3(0f, height * 0.6f, Radius);
 
         BattleManager battle;
-        Transform visual;
-        Vector3 visualPos, visualScale;
-        Quaternion visualRot;
+        Rigidbody body;
+        BoxCollider box;
+        Transform visual, overlay;
+        Vector3 visualScale;
         HealthBar bar;
-        GameObject ring;
         float height;
 
         BattleUnit target;
         float attackTimer, retargetTimer;
         readonly Dictionary<AbilityDefinition, float> abilityTimers = new();
 
-        // Animation state.
-        float walkPhase, walkBlend, lunge, flinch, deathTime = -1f;
-        Vector3 flinchDir;
+        float balance = 1f, toppledUntil = -1f, walkPhase, squash;
+        bool gettingUp;
+        BattleUnit pendingHit;
+        float pendingHitTime;
 
         public static BattleUnit Create(UnitBlueprint bp, Team team, IEnumerable<BuffDefinition> buffs,
                                         BattleManager battle, Vector3 position, Color teamColor)
@@ -54,6 +74,7 @@ namespace RougeLike.Battle
                 Destroy(go);
                 return null;
             }
+            go.AddComponent<Rigidbody>();
             var bu = go.AddComponent<BattleUnit>();
             bu.Init(unit, battle, teamColor);
             return bu;
@@ -64,39 +85,80 @@ namespace RougeLike.Battle
             Unit = unit;
             battle = b;
             visual = unit.transform;
-            visualPos = visual.localPosition;
-            visualRot = visual.localRotation;
             visualScale = visual.localScale;
             IsRanged = unit.Tags.Contains("ranged");
 
-            // Size from the model so big bodies keep their distance and bars sit above the head.
+            // Size from the model: a box around the body (limbs trimmed a little) is the hit shape.
             var renderers = visual.GetComponentsInChildren<Renderer>();
-            var bounds = renderers.Length > 0 ? renderers[0].bounds : new Bounds(transform.position, Vector3.one);
+            var bounds = renderers.Length > 0 ? renderers[0].bounds : new Bounds(transform.position + Vector3.up * 0.4f, Vector3.one * 0.8f);
             foreach (var r in renderers) bounds.Encapsulate(r.bounds);
             Radius = Mathf.Clamp(Mathf.Max(bounds.extents.x, bounds.extents.z), 0.3f, 1.5f);
             height = Mathf.Max(bounds.max.y - transform.position.y, 0.5f);
 
-            ring = BattleVisuals.Primitive(PrimitiveType.Cylinder, "Team Ring", transform, BattleVisuals.Unlit(teamColor));
+            box = gameObject.AddComponent<BoxCollider>();
+            var localCenter = transform.InverseTransformPoint(bounds.center);
+            var size = transform.InverseTransformVector(bounds.size);
+            size = new Vector3(Mathf.Abs(size.x) * 0.75f, Mathf.Abs(size.y), Mathf.Abs(size.z) * 0.8f);
+            box.center = new Vector3(localCenter.x, size.y * 0.5f, localCenter.z);
+            box.size = size;
+            box.material = Slippery;
+
+            body = GetComponent<Rigidbody>();
+            body.mass = 1f + Unit.Stats.Get(StatType.MaxHealth) / 100f;
+            body.linearDamping = 0.2f;
+            body.angularDamping = 1.5f;
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            // A low centre of mass keeps units planted until something really hits them.
+            body.centerOfMass = new Vector3(box.center.x, height * 0.4f, box.center.z);
+            body.isKinematic = true; // frozen until the fight starts
+
+            // Ring and health bar live outside the body so they stay flat and upright when it tips.
+            overlay = new GameObject($"{name} Overlay").transform;
+            overlay.SetParent(battle.UnitRoot, false);
+            var ring = BattleVisuals.Primitive(PrimitiveType.Cylinder, "Team Ring", overlay, BattleVisuals.Unlit(teamColor));
             ring.transform.localPosition = new Vector3(0f, 0.01f, 0f);
             ring.transform.localScale = new Vector3(Radius * 1.5f, 0.005f, Radius * 1.5f);
             ring.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-
-            bar = HealthBar.Create(transform, height + 0.35f, teamColor);
+            bar = HealthBar.Create(overlay, height + 0.35f, teamColor);
             bar.Set(1f);
 
             attackTimer = Random.Range(0.1f, 0.5f); // so a line of units doesn't swing in lockstep
             foreach (var ab in unit.Abilities) abilityTimers[ab] = ab.cooldown;
         }
 
+        static PhysicsMaterial Slippery => slippery ??= new PhysicsMaterial("Unit")
+        {
+            dynamicFriction = 0.1f, staticFriction = 0.1f, frictionCombine = PhysicsMaterialCombine.Minimum,
+            bounciness = 0.05f,
+        };
+
+        static PhysicsMaterial Grippy => grippy ??= new PhysicsMaterial("Fallen")
+        {
+            dynamicFriction = 0.8f, staticFriction = 0.9f, frictionCombine = PhysicsMaterialCombine.Maximum,
+        };
+
+        void OnDestroy()
+        {
+            if (overlay != null) Destroy(overlay.gameObject);
+        }
+
+        /// <summary>Wakes the body when the battle starts.</summary>
+        public void SetSimulated(bool on) => body.isKinematic = !on;
+
+        float Tilt => Vector3.Angle(transform.up, Vector3.up);
+        bool Toppled => Time.time < toppledUntil || gettingUp;
+        bool Grounded => transform.position.y < 0.35f;
+
+        // Decisions (per frame)
+
         void Update()
         {
-            if (!IsAlive || battle.Phase != BattlePhase.Fighting)
-            {
-                walkBlend = Mathf.MoveTowards(walkBlend, 0f, Time.deltaTime * 4f);
-                return;
-            }
+            if (!IsAlive || battle.Phase != BattlePhase.Fighting) return;
             float dt = Time.deltaTime;
             TickAbilities(dt);
+
+            if (pendingHit != null && Time.time >= pendingHitTime) LandHit();
 
             retargetTimer -= dt;
             if (target == null || !target.IsAlive || retargetTimer <= 0f)
@@ -104,48 +166,123 @@ namespace RougeLike.Battle
                 target = battle.NearestEnemy(this);
                 retargetTimer = RetargetInterval;
             }
-            if (target == null) { walkBlend = Mathf.MoveTowards(walkBlend, 0f, dt * 4f); return; }
+            if (target == null || Toppled) return;
 
-            var to = target.transform.position - transform.position;
-            to.y = 0f;
+            var to = Flat(target.transform.position - transform.position);
             float gap = to.magnitude - Radius - target.Radius;
-            Face(to, dt);
-
-            if (gap > Reach)
+            bool facing = Vector3.Dot(Flat(transform.forward).normalized, to.normalized) > 0.6f;
+            if (gap <= Reach && facing)
             {
-                float speed = Unit.Stats.Get(StatType.Speed);
-                transform.position += to.normalized * Mathf.Min(speed * dt, gap);
-                walkPhase += dt * (6f + speed * 1.5f);
-                walkBlend = Mathf.MoveTowards(walkBlend, 1f, dt * 4f);
-                attackTimer = Mathf.Max(attackTimer, 0.25f); // a short wind-up after arriving
-            }
-            else
-            {
-                walkBlend = Mathf.MoveTowards(walkBlend, 0f, dt * 4f);
                 attackTimer -= dt;
-                if (attackTimer <= 0f)
+                if (attackTimer <= 0f && balance > 0.15f)
                 {
                     Attack(target);
                     attackTimer = AttackInterval;
                 }
             }
+            else
+            {
+                attackTimer = Mathf.Max(attackTimer, 0.25f); // a short wind-up after arriving
+            }
         }
 
         /// <summary>Distance between body edges at which this unit can attack.</summary>
-        float Reach => Mathf.Max(0.3f, Unit.Stats.Get(StatType.Range) - 0.6f);
-
-        void Face(Vector3 dir, float dt)
-        {
-            if (dir.sqrMagnitude < 0.0001f) return;
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir), TurnSpeed * dt);
-        }
+        float Reach => Mathf.Max(0.35f, Unit.Stats.Get(StatType.Range) - 0.6f);
 
         void Attack(BattleUnit t)
         {
+            if (IsRanged)
+            {
+                Projectile.Fire(this, t, Unit.Stats.Get(StatType.Attack), new Color(0.55f, 1f, 0.3f));
+                body.AddForce(-transform.forward * 1.2f, ForceMode.VelocityChange); // recoil
+                return;
+            }
+            // Throw the body forward; the blow lands a moment later if the target is still in reach.
+            var dir = Flat(t.transform.position - transform.position).normalized;
+            body.AddForce(dir * LungeSpeed + Vector3.up * 0.8f, ForceMode.VelocityChange);
+            pendingHit = t;
+            pendingHitTime = Time.time + HitDelay;
+        }
+
+        void LandHit()
+        {
+            var t = pendingHit;
+            pendingHit = null;
+            if (!IsAlive || t == null || !t.IsAlive) return;
+            var to = Flat(t.transform.position - transform.position);
+            if (to.magnitude - Radius - t.Radius > Reach + 0.5f) return; // whiffed
             float damage = Unit.Stats.Get(StatType.Attack);
-            lunge = 1f;
-            if (IsRanged) Projectile.Fire(this, t, damage, new Color(0.55f, 1f, 0.3f));
-            else t.Hit(damage, (t.transform.position - transform.position).normalized);
+            float knock = Mathf.Min(MaxKnock, (MeleeKnock + damage * MeleeKnockPerDamage) * Mass / t.Mass);
+            var point = Vector3.Lerp(t.CenterPosition, MuzzlePosition, 0.5f);
+            t.Hit(damage, to.normalized, knock, point);
+        }
+
+        /// <summary>
+        /// Deals damage and shoves the unit. Knock is a speed in m/s; it's applied above the centre of
+        /// mass so strong hits tip the target over as well as pushing it back.
+        /// </summary>
+        public void Hit(float damage, Vector3 dir, float knock, Vector3 point)
+        {
+            if (!IsAlive) return;
+            Unit.TakeDamage(damage);
+            bar.Set(Unit.CurrentHealth / Mathf.Max(1f, Unit.Stats.Get(StatType.MaxHealth)));
+            squash = 1f;
+
+            dir = Flat(dir).normalized;
+            if (!body.isKinematic)
+            {
+                var impulse = (dir + Vector3.up * 0.3f) * knock * body.mass;
+                var high = new Vector3(point.x, Mathf.Max(point.y, body.worldCenterOfMass.y + height * 0.25f), point.z);
+                body.AddForceAtPosition(impulse, high, ForceMode.Impulse);
+                balance = Mathf.Max(0f, balance - knock / 6f);
+            }
+            battle.OnHit(point, knock, Team);
+            if (!IsAlive) Die(dir * knock);
+        }
+
+        void Die(Vector3 push)
+        {
+            pendingHit = null;
+            overlay.gameObject.SetActive(false);
+            box.material = Grippy;
+            body.angularDamping = 0.5f;
+            // Ragdoll-ish: the body goes limp and the parts break off and fly.
+            body.AddTorque(Random.onUnitSphere * 4f, ForceMode.VelocityChange);
+            BreakOffParts(push);
+            battle.OnUnitDied(this);
+            Destroy(gameObject, 8f);
+        }
+
+        /// <summary>Kills a unit outright, e.g. when it's knocked off the field.</summary>
+        public void Kill()
+        {
+            if (!IsAlive) return;
+            Unit.TakeDamage(float.MaxValue);
+            Die(Vector3.zero);
+        }
+
+        void BreakOffParts(Vector3 push)
+        {
+            var parts = new List<Transform>();
+            foreach (Transform child in visual)
+                if (child.name.Contains(": ")) parts.Add(child); // UnitAssembler names parts "slot: Part"
+            foreach (var p in parts)
+            {
+                if (Random.value < 0.4f) continue; // some stay attached
+                // Mirrored parts have negative scale, which box colliders can't take, so wrap each
+                // part in an unscaled holder and put the physics there.
+                var holder = new GameObject($"Debris {p.name}");
+                holder.transform.SetParent(battle.UnitRoot, false);
+                holder.transform.SetPositionAndRotation(p.position, p.rotation);
+                p.SetParent(holder.transform, true);
+                FitBox(holder).material = Grippy;
+                var rb = holder.AddComponent<Rigidbody>();
+                rb.mass = 0.3f;
+                rb.interpolation = RigidbodyInterpolation.Interpolate;
+                rb.linearVelocity = body.linearVelocity + push * 0.6f + (p.position - CenterPosition).normalized * 2.5f + Vector3.up * 2.5f;
+                rb.angularVelocity = Random.insideUnitSphere * 10f;
+                Destroy(holder, 8f);
+            }
         }
 
         void TickAbilities(float dt)
@@ -163,50 +300,102 @@ namespace RougeLike.Battle
             }
         }
 
-        public void Hit(float damage, Vector3 fromDir)
+        // Physics (per fixed step)
+
+        void FixedUpdate()
         {
-            if (!IsAlive) return;
-            Unit.TakeDamage(damage);
-            flinch = 1f;
-            flinchDir = new Vector3(fromDir.x, 0f, fromDir.z).normalized;
-            transform.position += flinchDir * 0.12f; // a little knockback
-            bar.Set(Unit.CurrentHealth / Mathf.Max(1f, Unit.Stats.Get(StatType.MaxHealth)));
-            if (!IsAlive) Die();
+            if (body.isKinematic || !IsAlive) return;
+            if (transform.position.y < -3f) { Kill(); return; } // knocked off the edge
+            float dt = Time.fixedDeltaTime;
+
+            // Falling over: past the tilt limit the unit goes limp, then pushes itself back up.
+            if (!Toppled && Tilt > ToppleAngle)
+            {
+                toppledUntil = Time.time + ToppleTime;
+                balance = 0f;
+                box.material = Grippy;
+            }
+            if (toppledUntil > 0f && Time.time >= toppledUntil && !gettingUp)
+            {
+                if (Tilt > ToppleAngle) gettingUp = true;
+                else EndTopple(); // rolled back onto its feet by itself
+            }
+            if (gettingUp && Tilt < 20f) EndTopple();
+
+            float strength;
+            if (Time.time < toppledUntil) strength = 0f;
+            else if (gettingUp) strength = 2.5f;
+            else
+            {
+                balance = Mathf.MoveTowards(balance, 1f, BalanceRecovery * dt);
+                strength = Mathf.Lerp(0.15f, 1f, balance);
+            }
+
+            // Stay upright: torque toward world up, damped on the tipping axes.
+            var w = body.angularVelocity;
+            var axis = Vector3.Cross(transform.up, Vector3.up);
+            var tipW = w - Vector3.Project(w, Vector3.up);
+            body.AddTorque((axis * UprightStrength - tipW * UprightDamping) * strength, ForceMode.Acceleration);
+            if (gettingUp && Grounded) body.AddForce(Vector3.up * 4f, ForceMode.Acceleration); // a little hop helps
+
+            if (Time.time < toppledUntil || gettingUp || target == null || !target.IsAlive || battle.Phase != BattlePhase.Fighting)
+                return;
+
+            // Turn toward the target.
+            var to = Flat(target.transform.position - transform.position);
+            float yawErr = Vector3.SignedAngle(Flat(transform.forward), to, Vector3.up) * Mathf.Deg2Rad;
+            body.AddTorque(Vector3.up * (yawErr * TurnStrength - w.y * TurnDamping) * strength, ForceMode.Acceleration);
+
+            // Walk: steer the horizontal velocity toward the target, only with feet on the ground.
+            float gap = to.magnitude - Radius - target.Radius;
+            var vel = Flat(body.linearVelocity);
+            var desired = gap > Reach ? to.normalized * Unit.Stats.Get(StatType.Speed) : Vector3.zero;
+            if (Grounded) body.AddForce(Vector3.ClampMagnitude((desired - vel) * 6f, MoveAccel) * strength, ForceMode.Acceleration);
+
+            // A TABS-ish waddle: rock side to side while walking.
+            if (desired != Vector3.zero)
+            {
+                walkPhase += dt * (5f + Unit.Stats.Get(StatType.Speed));
+                body.AddTorque(transform.forward * Mathf.Sin(walkPhase) * 6f * strength, ForceMode.Acceleration);
+            }
         }
 
-        void Die()
+        void EndTopple()
         {
-            deathTime = Time.time;
-            bar.gameObject.SetActive(false);
-            ring.SetActive(false);
-            battle.OnUnitDied(this);
+            gettingUp = false;
+            toppledUntil = -1f;
+            balance = 0.5f;
+            box.material = Slippery;
         }
 
         void LateUpdate()
         {
-            float dt = Time.deltaTime;
-            lunge = Mathf.MoveTowards(lunge, 0f, dt * 4f);
-            flinch = Mathf.MoveTowards(flinch, 0f, dt * 5f);
-
-            if (deathTime >= 0f)
+            if (overlay != null && overlay.gameObject.activeSelf)
             {
-                // Topple sideways, lie there for a bit, then sink out of sight.
-                float t = Time.time - deathTime;
-                float fall = Mathf.SmoothStep(0f, 1f, t / 0.5f);
-                visual.localRotation = Quaternion.Euler(0f, 0f, 90f * fall) * visualRot;
-                visual.localPosition = visualPos + new Vector3(0f, -Mathf.Max(0f, t - 2.5f) * 0.5f, 0f);
-                if (t > 4.5f) gameObject.SetActive(false);
-                return;
+                var p = transform.position;
+                overlay.SetPositionAndRotation(new Vector3(p.x, Mathf.Max(0f, p.y), p.z), Quaternion.identity);
             }
-
-            // Waddle while walking, lunge forward on attack, rock back when hit.
-            float s = Mathf.Sin(walkPhase);
-            float lungeCurve = Mathf.Sin(lunge * Mathf.PI);
-            var localFlinch = transform.InverseTransformDirection(flinchDir) * flinch;
-            visual.localPosition = visualPos + new Vector3(0f, Mathf.Abs(s) * 0.08f * walkBlend, lungeCurve * (IsRanged ? -0.1f : 0.3f));
-            visual.localRotation = Quaternion.Euler(lungeCurve * 12f + localFlinch.z * 18f, 0f, s * 7f * walkBlend - localFlinch.x * 18f) * visualRot;
-            float squash = 1f - flinch * 0.12f;
-            visual.localScale = Vector3.Scale(visualScale, new Vector3(1f / squash, squash, 1f / squash));
+            // A quick squash when hit.
+            squash = Mathf.MoveTowards(squash, 0f, Time.deltaTime * 6f);
+            float s = 1f - squash * 0.15f;
+            visual.localScale = Vector3.Scale(visualScale, new Vector3(1f / s, s, 1f / s));
         }
+
+        /// <summary>A box collider around all of an object's meshes (they may sit on child objects).</summary>
+        static BoxCollider FitBox(GameObject go)
+        {
+            var c = go.AddComponent<BoxCollider>();
+            var renderers = go.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) { c.size = Vector3.one * 0.2f; return c; }
+            var b = renderers[0].bounds;
+            foreach (var r in renderers) b.Encapsulate(r.bounds);
+            var t = go.transform;
+            c.center = t.InverseTransformPoint(b.center);
+            var s = t.InverseTransformVector(b.size);
+            c.size = new Vector3(Mathf.Max(0.05f, Mathf.Abs(s.x)), Mathf.Max(0.05f, Mathf.Abs(s.y)), Mathf.Max(0.05f, Mathf.Abs(s.z)));
+            return c;
+        }
+
+        static Vector3 Flat(Vector3 v) => new(v.x, 0f, v.z);
     }
 }
