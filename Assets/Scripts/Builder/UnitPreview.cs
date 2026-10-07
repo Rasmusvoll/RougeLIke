@@ -18,6 +18,10 @@ namespace RougeLike.Builder
         [SerializeField] float pitch = 18f;
         [SerializeField] float idleSpinSpeed = 12f;
         [SerializeField] float idleDelay = 3f;
+        [Tooltip("Optional stand the unit poses on, e.g. a tree stump. Its top should sit at standHeight.")]
+        [SerializeField] GameObject standPrefab;
+        [SerializeField] float standHeight = 0.42f;
+        [SerializeField] float standScale = 1.5f;
 
         Transform pivot;
         GameObject model;
@@ -36,6 +40,13 @@ namespace RougeLike.Builder
             pivot.SetParent(transform, false);
             block = new MaterialPropertyBlock();
             if (markerMaterial == null) markerMaterial = new Material(Shader.Find("Unlit/Color"));
+            if (standPrefab != null)
+            {
+                var stand = Instantiate(standPrefab, pivot);
+                stand.name = "Stand";
+                stand.transform.localPosition = new Vector3(0f, -standHeight * standScale, 0f);
+                stand.transform.localScale = Vector3.one * standScale;
+            }
         }
 
         void LateUpdate()

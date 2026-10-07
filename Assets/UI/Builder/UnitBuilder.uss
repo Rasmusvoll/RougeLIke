@@ -1,25 +1,25 @@
 .root {
     flex-grow: 1;
     flex-direction: row;
-    color: rgb(226, 230, 236);
+    color: rgb(43, 31, 26);
     font-size: 14px;
 }
 
 .panel {
-    background-color: rgb(24, 27, 33);
+    background-color: rgb(234, 217, 176);
     padding: 14px;
 }
 
 .side {
     width: 280px;
     border-right-width: 1px;
-    border-right-color: rgb(44, 49, 58);
+    border-right-color: rgb(160, 132, 88);
 }
 
 .side-right {
     width: 360px;
     border-left-width: 1px;
-    border-left-color: rgb(44, 49, 58);
+    border-left-color: rgb(160, 132, 88);
 }
 
 .center {
@@ -32,12 +32,12 @@
     align-items: center;
     flex-wrap: wrap;
     border-bottom-width: 1px;
-    border-bottom-color: rgb(44, 49, 58);
+    border-bottom-color: rgb(160, 132, 88);
 }
 
 .footer {
     border-top-width: 1px;
-    border-top-color: rgb(44, 49, 58);
+    border-top-color: rgb(160, 132, 88);
 }
 
 .preview {
@@ -48,7 +48,7 @@
 }
 
 .hint {
-    color: rgba(226, 230, 236, 0.55);
+    color: rgba(43, 31, 26, 0.6);
     font-size: 12px;
 }
 
@@ -61,7 +61,7 @@
 .section {
     font-size: 12px;
     -unity-font-style: bold;
-    color: rgb(140, 150, 165);
+    color: rgb(107, 74, 47);
     margin-top: 14px;
     margin-bottom: 6px;
     letter-spacing: 1px;
@@ -74,18 +74,18 @@
     padding: 4px 8px;
     margin-bottom: 4px;
     border-radius: 6px;
-    background-color: rgb(33, 37, 45);
-    border-width: 1px;
-    border-color: rgb(33, 37, 45);
+    background-color: rgb(242, 228, 196);
+    border-width: 2px;
+    border-color: rgb(205, 181, 130);
 }
 
 .row:hover {
-    border-color: rgb(70, 78, 92);
+    border-color: rgb(107, 74, 47);
 }
 
 .row.selected {
-    border-color: rgb(255, 204, 51);
-    background-color: rgb(48, 44, 30);
+    border-color: rgb(194, 86, 43);
+    background-color: rgb(247, 222, 178);
 }
 
 .row.dim {
@@ -99,11 +99,11 @@
 
 .sub {
     font-size: 12px;
-    color: rgb(150, 160, 175);
+    color: rgb(107, 74, 47);
 }
 
 .empty {
-    color: rgb(110, 118, 130);
+    color: rgb(150, 125, 95);
     -unity-font-style: italic;
 }
 
@@ -114,18 +114,18 @@
 }
 
 .cost {
-    color: rgb(102, 204, 255);
+    color: rgb(63, 110, 148);
     margin-left: 6px;
     margin-right: 6px;
 }
 
 .warn {
-    color: rgb(255, 170, 90);
+    color: rgb(194, 86, 43);
     font-size: 12px;
 }
 
 .error {
-    color: rgb(255, 110, 110);
+    color: rgb(158, 59, 42);
     margin-top: 6px;
 }
 
@@ -134,12 +134,12 @@ Button {
     padding: 4px 10px;
     border-radius: 5px;
     border-width: 0;
-    background-color: rgb(58, 66, 80);
-    color: rgb(226, 230, 236);
+    background-color: rgb(107, 74, 47);
+    color: rgb(242, 228, 196);
 }
 
 Button:hover {
-    background-color: rgb(78, 88, 106);
+    background-color: rgb(133, 95, 62);
 }
 
 Button:disabled {
@@ -147,23 +147,23 @@ Button:disabled {
 }
 
 Button.primary {
-    background-color: rgb(40, 120, 180);
+    background-color: rgb(63, 110, 148);
 }
 
 Button.primary:hover {
-    background-color: rgb(52, 140, 205);
+    background-color: rgb(80, 132, 172);
 }
 
 Button.danger {
-    background-color: rgb(120, 46, 46);
+    background-color: rgb(158, 59, 42);
 }
 
 Button.danger:hover {
-    background-color: rgb(150, 56, 56);
+    background-color: rgb(182, 74, 52);
 }
 
 Button.confirm {
-    background-color: rgb(200, 60, 60);
+    background-color: rgb(194, 86, 43);
 }
 
 Button.chip {
@@ -171,7 +171,7 @@ Button.chip {
 }
 
 Button.chip.selected {
-    background-color: rgb(150, 120, 30);
+    background-color: rgb(209, 154, 58);
 }
 
 TextField {
@@ -182,7 +182,7 @@ TextField {
 .energy-track {
     height: 14px;
     border-radius: 7px;
-    background-color: rgb(40, 45, 54);
+    background-color: rgb(205, 181, 130);
     margin-top: 4px;
     margin-bottom: 10px;
     overflow: hidden;
@@ -190,12 +190,12 @@ TextField {
 
 .energy-fill {
     height: 100%;
-    background-color: rgb(102, 204, 255);
+    background-color: rgb(63, 110, 148);
     border-radius: 7px;
 }
 
 .energy-fill.full {
-    background-color: rgb(255, 204, 51);
+    background-color: rgb(209, 154, 58);
 }
 
 .stats {
@@ -215,16 +215,20 @@ TextField {
 }
 
 .up {
-    color: rgb(110, 220, 130);
+    color: rgb(79, 107, 58);
 }
 
 .down {
-    color: rgb(255, 110, 110);
+    color: rgb(158, 59, 42);
 }
 
 TextField .unity-base-text-field__input {
-    background-color: rgb(33, 37, 45);
-    border-color: rgb(70, 78, 92);
-    color: rgb(226, 230, 236);
+    background-color: rgb(242, 228, 196);
+    border-color: rgb(160, 132, 88);
+    color: rgb(43, 31, 26);
     padding: 4px 8px;
+}
+
+.preview .hint {
+    color: rgba(242, 228, 196, 0.85);
 }

@@ -30,9 +30,19 @@ namespace RougeLike.Battle
         [SerializeField] Vector2 fieldSize = new(15f, 10f);
         [Tooltip("Half-width of the strip in the middle where nobody can be placed.")]
         [SerializeField] float noMansLand = 1.2f;
-        [SerializeField] Color groundColor = new(0.32f, 0.36f, 0.3f);
-        [SerializeField] Color playerColor = new(0.3f, 0.65f, 1f);
-        [SerializeField] Color enemyColor = new(1f, 0.35f, 0.3f);
+        [SerializeField] Color groundColor = new(0.918f, 0.851f, 0.69f);
+        [SerializeField] Color playerColor = new(0.247f, 0.431f, 0.58f);
+        [SerializeField] Color enemyColor = new(0.851f, 0.475f, 0.169f);
+
+        [Header("Woodland")]
+        [Tooltip("The parchment board the fight happens on. Without it a plain slab is drawn.")]
+        [SerializeField] GameObject clearingPrefab;
+        [Tooltip("Half size of the clearing model, for laying props around it.")]
+        [SerializeField] Vector2 clearingHalfSize = new(9.2f, 6.6f);
+        [SerializeField] Color forestFloorColor = new(0.31f, 0.42f, 0.227f);
+        [SerializeField] List<GameObject> treePrefabs = new();
+        [SerializeField] List<GameObject> smallPropPrefabs = new();
+        [SerializeField] int dressingSeed = 7;
 
         public event Action Changed;
 
@@ -81,6 +91,7 @@ namespace RougeLike.Battle
             var ground = BattleVisuals.Primitive(PrimitiveType.Cube, "Ground", field, BattleVisuals.Lit(groundColor), keepCollider: true);
             ground.transform.localPosition = new Vector3(0f, -0.25f, 0f);
             ground.transform.localScale = new Vector3(fieldSize.x + 2f, 0.5f, fieldSize.y + 2f);
+            BuildWoodland(field, ground);
 
             // Invisible walls around the edge keep the fight on screen when units get shoved around.
             foreach (var (pos, scale) in new[]
@@ -102,14 +113,38 @@ namespace RougeLike.Battle
             playerZone = Zone(field, "Player Zone", playerColor, -zoneCenter, zoneDepth);
             enemyZone = Zone(field, "Enemy Zone", enemyColor, zoneCenter, zoneDepth);
 
-            var line = BattleVisuals.Primitive(PrimitiveType.Cube, "Centre Line", field, BattleVisuals.Unlit(new Color(1f, 1f, 1f, 1f) * 0.75f));
-            line.transform.localPosition = new Vector3(0f, 0.005f, 0f);
-            line.transform.localScale = new Vector3(fieldSize.x, 0.01f, 0.06f);
+            // An inked dashed line down the middle, like a path drawn on the map.
+            var ink = BattleVisuals.Unlit(BattleVisuals.Palette.Ink);
+            for (float x = -HalfW + 0.3f; x < HalfW; x += 0.7f)
+            {
+                var dash = BattleVisuals.Primitive(PrimitiveType.Cube, "Centre Dash", field, ink);
+                dash.transform.localPosition = new Vector3(x, 0.006f, 0f);
+                dash.transform.localScale = new Vector3(0.38f, 0.01f, 0.07f);
+                dash.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+        }
+
+        /// <summary>The look of the field: a parchment clearing on a forest floor, ringed by trees.</summary>
+        void BuildWoodland(Transform field, GameObject ground)
+        {
+            var floor = BattleVisuals.Primitive(PrimitiveType.Cube, "Forest Floor", field, BattleVisuals.Toon(forestFloorColor, 0f, 0.1f));
+            floor.transform.localPosition = new Vector3(0f, -0.6f, 0f);
+            floor.transform.localScale = new Vector3(90f, 1f, 70f);
+
+            if (clearingPrefab == null) return;
+            ground.GetComponent<Renderer>().enabled = false; // keep its collider, draw the clearing instead
+            var clearing = Instantiate(clearingPrefab, field);
+            clearing.name = "Clearing";
+            clearing.transform.localPosition = Vector3.zero;
+
+            var props = new GameObject("Woodland").transform;
+            props.SetParent(field, false);
+            ArenaDressing.Scatter(props, clearingHalfSize, -0.1f, treePrefabs, smallPropPrefabs, dressingSeed);
         }
 
         GameObject Zone(Transform parent, string name, Color color, float z, float depth)
         {
-            var zone = BattleVisuals.Primitive(PrimitiveType.Cube, name, parent, BattleVisuals.Lit(Color.Lerp(groundColor, color, 0.22f)));
+            var zone = BattleVisuals.Primitive(PrimitiveType.Cube, name, parent, BattleVisuals.Toon(Color.Lerp(Color.white, color, 0.4f), 0f));
             zone.transform.localPosition = new Vector3(0f, 0.002f, z);
             zone.transform.localScale = new Vector3(fieldSize.x, 0.004f, depth);
             return zone;

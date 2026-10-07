@@ -1,7 +1,7 @@
 .battle-root {
     flex-grow: 1;
     flex-direction: column;
-    color: rgb(226, 230, 236);
+    color: rgb(43, 31, 26);
     font-size: 14px;
 }
 
@@ -9,8 +9,8 @@
     flex-direction: row;
     align-items: center;
     border-bottom-width: 1px;
-    border-bottom-color: rgb(44, 49, 58);
-    background-color: rgba(24, 27, 33, 0.97);
+    border-bottom-color: rgb(160, 132, 88);
+    background-color: rgba(234, 217, 176, 0.97);
 }
 
 .battle-middle {
@@ -22,8 +22,8 @@
 .battle-hint {
     position: absolute;
     bottom: 10px;
-    color: rgb(226, 230, 236);
-    background-color: rgba(16, 18, 22, 0.75);
+    color: rgb(242, 228, 196);
+    background-color: rgba(43, 31, 26, 0.8);
     border-radius: 12px;
     padding: 4px 12px;
     font-size: 13px;
@@ -32,8 +32,8 @@
 .battle-bottom {
     flex-shrink: 0;
     border-top-width: 1px;
-    border-top-color: rgb(44, 49, 58);
-    background-color: rgba(24, 27, 33, 0.97);
+    border-top-color: rgb(160, 132, 88);
+    background-color: rgba(234, 217, 176, 0.97);
     padding-top: 10px;
     padding-bottom: 8px;
 }
@@ -58,7 +58,8 @@
     align-items: center;
     border-radius: 10px;
     border-width: 1px;
-    border-color: rgb(70, 78, 92);
+    border-color: rgb(107, 74, 47);
+    background-color: rgb(234, 217, 176);
     padding: 24px;
 }
 

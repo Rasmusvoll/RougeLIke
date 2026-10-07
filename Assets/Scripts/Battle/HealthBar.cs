@@ -16,7 +16,7 @@ namespace RougeLike.Battle
             go.transform.SetParent(parent, false);
             go.transform.localPosition = new Vector3(0f, height, 0f);
             var bar = go.AddComponent<HealthBar>();
-            Quad(go.transform, "Back", new Color(0.08f, 0.08f, 0.1f), Vector3.zero, new Vector3(Width + 0.06f, Height + 0.06f, 1f));
+            Quad(go.transform, "Back", BattleVisuals.Palette.Ink, Vector3.zero, new Vector3(Width + 0.06f, Height + 0.06f, 1f));
             bar.fill = Quad(go.transform, "Fill", color, new Vector3(0f, 0f, -0.01f), new Vector3(Width, Height, 1f));
             return bar;
         }

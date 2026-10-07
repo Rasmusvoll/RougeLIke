@@ -37,7 +37,7 @@ namespace RougeLike.Battle
             else
             {
                 // Fallback so a missing reference doesn't break the fight.
-                var s = BattleVisuals.Primitive(PrimitiveType.Sphere, "Rock", go.transform, BattleVisuals.Lit(new Color(0.45f, 0.42f, 0.38f)));
+                var s = BattleVisuals.Primitive(PrimitiveType.Sphere, "Rock", go.transform, BattleVisuals.Lit(BattleVisuals.Palette.Stone));
                 s.transform.localScale = Vector3.one * 2f;
             }
 

@@ -52,6 +52,9 @@ MonoBehaviour:
   pitch: 18
   idleSpinSpeed: 12
   idleDelay: 3
+  standPrefab: {fileID: 919132149155446097, guid: 8f8fb05522ca2f449ad6fcf0f914a833, type: 3}
+  standHeight: 0.42
+  standScale: 1.5
 --- !u!1 &1946742226889932473
 GameObject:
   m_ObjectHideFlags: 0
@@ -94,7 +97,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.094, g: 0.106, b: 0.13, a: 1}
+  m_BackGroundColor: {r: 0.91764706, g: 0.8509804, b: 0.6901961, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -178,7 +181,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.16, g: 0.18, b: 0.22, a: 1}
+  m_BackGroundColor: {r: 0.24313726, g: 0.3529412, b: 0.22745098, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -269,8 +272,8 @@ Light:
   m_Enabled: 1
   serializedVersion: 13
   m_Type: 1
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 1.1
+  m_Color: {r: 1, g: 0.9411765, b: 0.8627451, a: 1}
+  m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -403,7 +406,7 @@ Light:
   m_Enabled: 1
   serializedVersion: 13
   m_Type: 1
-  m_Color: {r: 0.75, g: 0.85, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.9019608, b: 0.76862746, a: 1}
   m_Intensity: 0.45
   m_Range: 10
   m_SpotAngle: 30
@@ -530,3 +533,4 @@ MonoBehaviour:
   starterSet: {fileID: 11400000, guid: 69ff543d61624fc44b490ff98d8379b1, type: 2}
   preview: {fileID: 1034568734131067779}
   styleSheet: {fileID: 7433441132597879392, guid: 0146c063435c2ff4ba5b744f5d4603bc, type: 3}
+  battleScene: Battle

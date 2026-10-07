@@ -203,7 +203,7 @@ namespace RougeLike.Battle
             }
             if (IsRanged)
             {
-                Projectile.Fire(this, t, Unit.Stats.Get(StatType.Attack), new Color(0.55f, 1f, 0.3f));
+                Projectile.Fire(this, t, Unit.Stats.Get(StatType.Attack), BattleVisuals.Palette.Acid);
                 body.AddForce(-transform.forward * 1.2f, ForceMode.VelocityChange); // recoil
                 return;
             }

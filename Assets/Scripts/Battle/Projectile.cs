@@ -60,7 +60,7 @@ namespace RougeLike.Battle
             }
             else
             {
-                BattleEffects.Spark(point, 0.4f, new Color(0.55f, 1f, 0.3f));
+                BattleEffects.Spark(point, 0.4f, BattleVisuals.Palette.Acid);
             }
             Destroy(gameObject);
         }
