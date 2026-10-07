@@ -68,3 +68,102 @@
     font-size: 16px;
     -unity-text-align: middle-center;
 }
+
+/* Rewards: three cards dealt onto the victory panel. */
+
+.battle-result.with-rewards {
+    max-width: none;
+}
+
+.reward-row {
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+    margin-bottom: 16px;
+}
+
+.reward-card {
+    width: 230px;
+    margin: 0 8px;
+    padding: 14px 14px 12px 14px;
+    align-items: center;
+    -unity-slice-left: 14;
+    -unity-slice-right: 14;
+    -unity-slice-top: 14;
+    -unity-slice-bottom: 14;
+    border-radius: 10px;
+    opacity: 0;
+    translate: 0 70px;
+    scale: 0.6 0.6;
+    rotate: -10deg;
+    transition-property: opacity, translate, scale, rotate, -unity-background-image-tint-color;
+    transition-duration: 0.18s, 0.42s, 0.42s, 0.42s, 0.1s;
+    transition-timing-function: ease-out, ease-out-back, ease-out-back, ease-out-back, linear;
+}
+
+.reward-card.revealed {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1 1;
+    rotate: 0deg;
+}
+
+.reward-card.revealed:hover {
+    translate: 0 -6px;
+    -unity-background-image-tint-color: rgb(255, 250, 240);
+}
+
+.reward-card.chosen {
+    translate: 0 -14px;
+    scale: 1.08 1.08;
+    border-width: 3px;
+    border-color: rgb(209, 154, 58);
+}
+
+.reward-card.passed {
+    opacity: 0.35;
+    scale: 0.92 0.92;
+}
+
+.reward-kind {
+    margin-bottom: 8px;
+}
+
+.socket.huge {
+    width: 96px;
+    height: 96px;
+    margin-right: 0;
+    margin-bottom: 8px;
+}
+
+.reward-name {
+    font-size: 22px;
+    -unity-text-align: middle-center;
+    margin-bottom: 6px;
+}
+
+.reward-info {
+    flex-grow: 1;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.reward-info .chips {
+    justify-content: center;
+}
+
+.reward-info .pips {
+    margin-bottom: 4px;
+}
+
+.reward-card Button {
+    align-self: stretch;
+}
+
+.battle-result .reward-card .sub {
+    font-size: 14px;
+}
+
+Button.skip {
+    font-size: 16px;
+}

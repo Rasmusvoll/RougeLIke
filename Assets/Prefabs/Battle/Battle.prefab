@@ -249,6 +249,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7606247fe6376bc46a157fd1fb8480a3, type: 2}
   - {fileID: 11400000, guid: 3152f65bd8a9ad048abf62b8d605a673, type: 2}
   builderScene: Builder
+  rewardTable: {fileID: 11400000, guid: cfe566c66d4c1664b95ec44be9b70199, type: 2}
   boulderMesh: {fileID: 4300000, guid: b92eb3e5a6a96754e9046925d6a5c382, type: 2}
   boulderMaterial: {fileID: 2100000, guid: 3b35fbb954ebdd9438b6ac9827e22c77, type: 2}
   fieldSize: {x: 15, y: 10}

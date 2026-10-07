@@ -33,7 +33,7 @@ namespace RougeLike.Builder
         // Irreversible actions (scrap, delete, body swap) ask for a second click on the same button.
         string pendingConfirm;
         Vector2 dragStart;
-        bool dragging, dragMoved;
+        bool dragging, dragMoved, scrolledToNew;
 
         void Start()
         {
@@ -195,7 +195,7 @@ namespace RougeLike.Builder
                 row.AddToClassList(StoryUI.RarityClass(body.rarity));
                 StoryUI.Socket(row, body.icon);
                 var text = Add(row, "grow");
-                text.Add(L(body.displayName, "name"));
+                NewTag(Add(text, "hrow"), body.displayName, body.id, row);
                 text.Add(L($"{body.slots.Count} slots · {body.energy} energy", "sub"));
                 var id = body.id;
                 var add = new Button(() => { ClearConfirm(); session.NewUnit(id); }) { text = "+ New" };
@@ -216,7 +216,7 @@ namespace RougeLike.Builder
                 row.AddToClassList(StoryUI.RarityClass(buff.rarity));
                 StoryUI.Socket(row, buff.icon, "", true);
                 var text = Add(row, "grow");
-                text.Add(L(buff.displayName, "name"));
+                NewTag(Add(text, "hrow"), buff.displayName, buff.id, row);
                 StoryUI.StatChips(text, buff.modifiers);
                 text.Add(L(string.IsNullOrEmpty(buff.requiredTag) ? "All units" : $"Units with a {buff.requiredTag} part", "sub"));
             }
@@ -315,7 +315,7 @@ namespace RougeLike.Builder
                 StoryUI.Socket(row, part.icon, "big");
                 var text = Add(row, "grow");
                 var nameLine = Add(text, "hrow");
-                nameLine.Add(L(part.displayName, "name"));
+                NewTag(nameLine, part.displayName, part.id, row);
                 nameLine.Add(L($"×{count}", "count"));
                 var typeLine = Add(text, "hrow");
                 typeLine.Add(L($"{part.kind} part · ", "sub"));
@@ -464,7 +464,22 @@ namespace RougeLike.Builder
             b.EnableInClassList("confirm", armed);
         }
 
-        void GoToBattle() => UnityEngine.SceneManagement.SceneManager.LoadScene(battleScene);
+        void GoToBattle()
+        {
+            RunState.NewContentId = null;
+            UnityEngine.SceneManagement.SceneManager.LoadScene(battleScene);
+        }
+
+        /// <summary>The name, plus a "New" tag if this is the reward just taken. Scrolls its row into view once.</summary>
+        void NewTag(VisualElement line, string name, string id, VisualElement row)
+        {
+            line.Add(L(name, "name"));
+            if (string.IsNullOrEmpty(id) || id != RunState.NewContentId) return;
+            line.Add(L("New", "new-tag"));
+            if (scrolledToNew) return;
+            scrolledToNew = true;
+            row.schedule.Execute(() => row.GetFirstAncestorOfType<ScrollView>()?.ScrollTo(row)).StartingIn(50);
+        }
 
         void GrantAllContent()
         {

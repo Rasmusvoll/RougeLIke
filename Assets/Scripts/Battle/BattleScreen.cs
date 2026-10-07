@@ -7,7 +7,8 @@ namespace RougeLike.Battle
 {
     /// <summary>
     /// The battle UI and placement input. Top bar: battle name, counts, speed and Start. Bottom bar:
-    /// the player's units as cards to drag onto the blue half. A result panel when the fight ends.
+    /// the player's units as cards to drag onto the blue half. A result panel when the fight ends; after
+    /// a win it deals out the reward offers to pick one from.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class BattleScreen : MonoBehaviour
@@ -18,9 +19,10 @@ namespace RougeLike.Battle
         [SerializeField] Camera worldCamera;
         [SerializeField] StyleSheet[] styleSheets;
 
-        VisualElement root, bottomBar, cardRow, resultPanel;
+        VisualElement root, bottomBar, cardRow, resultPanel, rewardRow;
         Label titleLabel, infoLabel, hintLabel, resultTitle, resultText;
         Button startButton, speedButton, autoButton, clearButton, resultButton;
+        bool rewardsDealt, claimed;
 
         BattleUnit dragging;
         int speedIndex;
@@ -78,7 +80,8 @@ namespace RougeLike.Battle
             resultText.style.marginBottom = 14;
             resultText.style.whiteSpace = WhiteSpace.Normal;
             resultPanel.Add(resultText);
-            resultButton = new Button(battle.Continue);
+            rewardRow = Add(resultPanel, "reward-row");
+            resultButton = new Button(() => { if (rewardsDealt) { if (!claimed) { claimed = true; battle.ClaimReward(null); } } else battle.Continue(); });
             resultButton.AddToClassList("primary");
             resultButton.AddToClassList("big");
             resultPanel.Add(resultButton);
@@ -132,11 +135,16 @@ namespace RougeLike.Battle
                 resultTitle.text = won ? "Victory!" : "Defeat";
                 resultTitle.EnableInClassList("up", won);
                 resultTitle.EnableInClassList("down", !won);
+                bool rewards = won && battle.RewardOffers.Count > 0;
+                resultPanel.EnableInClassList("with-rewards", rewards);
                 resultText.text = won
-                    ? $"{alivePlayers} of your {battle.PlayerUnits.Count} units survived. Rewards come in a later update."
+                    ? $"{alivePlayers} of your {battle.PlayerUnits.Count} units survived." + (rewards ? " Pick a reward to take back to camp." : "")
                     : battle.Stalemate ? "Stalemate: nobody could reach anybody, and you didn't have more health left than the enemy. The run is over."
                     : "Your army was wiped out. The run is over.";
-                resultButton.text = won ? "Back to builder" : "Start a new run";
+                resultButton.text = rewards ? "Skip reward" : won ? "Back to builder" : "Start a new run";
+                resultButton.EnableInClassList("primary", !rewards);
+                resultButton.EnableInClassList("skip", rewards);
+                if (rewards && !rewardsDealt) DealRewards();
             }
 
             if (placing) RefreshCards();
@@ -180,6 +188,90 @@ namespace RougeLike.Battle
                 text.Add(L(placed ? "On the field" : "Drag onto the field", placed ? "up" : "hint"));
                 if (!placed) card.RegisterCallback<PointerDownEvent>(e => BeginDragFromRoster(index, e));
             }
+        }
+
+        // Rewards
+
+        void DealRewards()
+        {
+            rewardsDealt = true;
+            Time.timeScale = 1f;
+            rewardRow.Clear();
+            var offers = battle.RewardOffers;
+            for (int i = 0; i < offers.Count; i++)
+            {
+                var card = RewardCard(offers[i]);
+                rewardRow.Add(card);
+                // Deal the cards in one after another: each flips up from below the panel.
+                card.schedule.Execute(() => card.AddToClassList("revealed")).StartingIn(180 + i * 160);
+            }
+            resultButton.SetEnabled(false);
+            resultButton.schedule.Execute(() => resultButton.SetEnabled(!claimed)).StartingIn(180 + offers.Count * 160);
+        }
+
+        VisualElement RewardCard(RewardEntry offer)
+        {
+            var c = offer.content;
+            var card = new VisualElement();
+            card.AddToClassList("reward-card");
+            card.AddToClassList(StoryUI.RarityClass(c.rarity));
+
+            var kindLine = Add(card, "hrow", "reward-kind");
+            kindLine.Add(L(offer.kind switch
+            {
+                RewardKind.Body => "New body · ",
+                RewardKind.Buff => "Run buff · ",
+                _ => "Part · ",
+            }, "sub"));
+            StoryUI.RarityLabel(kindLine, c.rarity);
+
+            StoryUI.Socket(card, c.icon, "huge", offer.kind == RewardKind.Buff);
+            card.Add(L(c.displayName, "name", "reward-name"));
+
+            var info = Add(card, "reward-info");
+            switch (c)
+            {
+                case PartDefinition part:
+                    StoryUI.Pips(info, part.energyCost, part.energyCost);
+                    StoryUI.StatChips(info, part.modifiers);
+                    info.Add(L(part.IsLocomotion ? $"Walks · {StoryUI.Format(part.stride)} speed per leg"
+                        : UnitAssembler.HasAttackPart(part.tags) ? $"{part.kind} part" : $"{part.kind} part · no attack", "sub"));
+                    int owned = RunState.Collection.GetPartCount(part.id);
+                    if (owned > 0) info.Add(L($"You have {owned}", "hint"));
+                    break;
+                case BodyDefinition body:
+                    var stats = Add(info, "chips");
+                    foreach (var v in body.baseStats)
+                    {
+                        if (v.stat == StatType.Range) continue;
+                        var chip = Add(stats, "stat-chip");
+                        StoryUI.StatIcon(chip, v.stat);
+                        chip.Add(L(StoryUI.Format(v.value), "stat-chip-text"));
+                    }
+                    info.Add(L($"{body.slots.Count} slots · {body.energy} energy", "sub"));
+                    break;
+                case BuffDefinition buff:
+                    StoryUI.StatChips(info, buff.modifiers);
+                    info.Add(L(string.IsNullOrEmpty(buff.requiredTag) ? "All units, for the whole run" : $"Units with a {buff.requiredTag} part, for the whole run", "sub"));
+                    break;
+            }
+
+            var take = new Button(() => Claim(card, offer)) { text = "Take" };
+            take.AddToClassList("gold");
+            card.Add(take);
+            card.RegisterCallback<ClickEvent>(_ => Claim(card, offer));
+            return card;
+        }
+
+        void Claim(VisualElement card, RewardEntry offer)
+        {
+            if (claimed || !card.ClassListContains("revealed")) return;
+            claimed = true;
+            card.AddToClassList("chosen");
+            foreach (var other in rewardRow.Children())
+                if (other != card) other.AddToClassList("passed");
+            resultButton.SetEnabled(false);
+            card.schedule.Execute(() => battle.ClaimReward(offer)).StartingIn(450);
         }
 
         // Placement input. UI Toolkit starts drags from cards; the field itself is read with the

@@ -21,6 +21,8 @@ namespace RougeLike.Battle
         [Tooltip("One wave per battle in the run. After the last, the last wave repeats.")]
         [SerializeField] List<EnemyWave> waves = new();
         [SerializeField] string builderScene = "Builder";
+        [Tooltip("What a win offers. The player picks one offer or skips.")]
+        [SerializeField] RewardTable rewardTable;
 
         [Header("Projectiles")]
         [SerializeField] Mesh boulderMesh;
@@ -59,6 +61,8 @@ namespace RougeLike.Battle
         public IReadOnlyList<UnitBlueprint> Roster => RunState.Collection.blueprints;
         public readonly List<BattleUnit> PlayerUnits = new();
         public readonly List<BattleUnit> EnemyUnits = new();
+        /// <summary>Rolled once when the battle is won. Empty if there's no reward table.</summary>
+        public readonly List<RewardEntry> RewardOffers = new();
 
         List<BuffDefinition> playerBuffs;
         GameObject playerZone, enemyZone;
@@ -308,6 +312,8 @@ namespace RougeLike.Battle
             if (endTimer < 0f)
             {
                 Phase = pendingResult;
+                if (Phase == BattlePhase.Victory && rewardTable != null)
+                    RewardOffers.AddRange(rewardTable.Roll(new System.Random(Environment.TickCount), RunState.Collection));
                 Changed?.Invoke();
             }
         }
@@ -320,6 +326,18 @@ namespace RougeLike.Battle
         }
 
         // Leaving
+
+        /// <summary>Takes one of the reward offers (null skips) and goes back to the builder.</summary>
+        public void ClaimReward(RewardEntry offer)
+        {
+            if (Phase != BattlePhase.Victory) return;
+            if (offer != null && RewardOffers.Contains(offer))
+            {
+                RunState.Collection.Grant(offer);
+                RunState.NewContentId = offer.content.id;
+            }
+            Continue();
+        }
 
         /// <summary>After the result: a win advances the run, a loss ends it. Both go back to the builder.</summary>
         public void Continue()
