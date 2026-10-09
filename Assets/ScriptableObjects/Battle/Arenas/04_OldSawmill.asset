@@ -1,0 +1,120 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 968de7e14c59f61469c362ef76979315, type: 3}
+  m_Name: 04_OldSawmill
+  m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Battle.ArenaDefinition
+  displayName: Old Sawmill
+  description: Log piles wall off both sides, and the open middle runs right past a saw pit. Mind the edge.
+  noMansLand: 1.8
+  centreLine: 0
+  boardColor: {r: 0.8931373, g: 0.7892157, b: 0.5745098, a: 1}
+  rimColor: {r: 0.65882355, g: 0.47843137, b: 0.29803923, a: 1}
+  floorColor: {r: 0.45, g: 0.38, b: 0.2, a: 1}
+  mounds: []
+  streams: []
+  holes:
+  - center: {x: -1.75, y: 0}
+    radius: {x: 0.75, y: 1.25}
+    squareness: 6
+  pieces:
+  - prefab: {fileID: 919132149155446097, guid: 9fe32570b2b68fb448385fd3c9a68046, type: 3}
+    position: {x: -4.1, y: 0, z: 0.15}
+    yaw: 0
+    scale: 1
+    collider: 1
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 9fe32570b2b68fb448385fd3c9a68046, type: 3}
+    position: {x: 4.3, y: 0, z: -0.2}
+    yaw: 6
+    scale: 1
+    collider: 1
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: cc5a85bcb93b0094a8601072188dc20e, type: 3}
+    position: {x: 1.1, y: 0, z: 0.2}
+    yaw: 18
+    scale: 1
+    collider: 1
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: cc5a85bcb93b0094a8601072188dc20e, type: 3}
+    position: {x: 1.1, y: 0.8, z: 0.2}
+    yaw: -6
+    scale: 1
+    collider: 1
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: cc5a85bcb93b0094a8601072188dc20e, type: 3}
+    position: {x: 2, y: 0, z: -1.05}
+    yaw: -12
+    scale: 1
+    collider: 1
+    mass: 1.5
+  - prefab: {fileID: 919132149155446097, guid: cc5a85bcb93b0094a8601072188dc20e, type: 3}
+    position: {x: -6.6, y: 0, z: -0.5}
+    yaw: 40
+    scale: 1
+    collider: 1
+    mass: 1.5
+  - prefab: {fileID: 919132149155446097, guid: cc5a85bcb93b0094a8601072188dc20e, type: 3}
+    position: {x: 6.7, y: 0, z: 0.6}
+    yaw: 0
+    scale: 1
+    collider: 1
+    mass: 1.5
+  - prefab: {fileID: 919132149155446097, guid: 3181c5c3e50a4e54ea101734f3f4406d, type: 3}
+    position: {x: -3.5, y: 0, z: 6.3}
+    yaw: 4
+    scale: 1
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 3181c5c3e50a4e54ea101734f3f4406d, type: 3}
+    position: {x: 2.6, y: 0, z: 6.4}
+    yaw: -6
+    scale: 1
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 3181c5c3e50a4e54ea101734f3f4406d, type: 3}
+    position: {x: 8.55, y: 0, z: 2.4}
+    yaw: 90
+    scale: 1
+    collider: 1
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 3181c5c3e50a4e54ea101734f3f4406d, type: 3}
+    position: {x: -8.55, y: 0, z: -1.8}
+    yaw: -88
+    scale: 1
+    collider: 1
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 9fe32570b2b68fb448385fd3c9a68046, type: 3}
+    position: {x: -6.4, y: 0, z: 6.4}
+    yaw: 10
+    scale: 1
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 8f8fb05522ca2f449ad6fcf0f914a833, type: 3}
+    position: {x: 5.6, y: 0, z: 6.1}
+    yaw: 0
+    scale: 1.1
+    collider: 0
+    mass: 0
+  trees:
+  - {fileID: 919132149155446097, guid: 63815878d9cf5a04fb8dbe3878f990b9, type: 3}
+  - {fileID: 919132149155446097, guid: 63815878d9cf5a04fb8dbe3878f990b9, type: 3}
+  - {fileID: 919132149155446097, guid: 63815878d9cf5a04fb8dbe3878f990b9, type: 3}
+  - {fileID: 919132149155446097, guid: 7bcdacaa9f99c6740b606c7532a0e138, type: 3}
+  - {fileID: 919132149155446097, guid: 79e56156f0a0d524eae50ddd52fd61bb, type: 3}
+  smallProps:
+  - {fileID: 919132149155446097, guid: 8f8fb05522ca2f449ad6fcf0f914a833, type: 3}
+  - {fileID: 919132149155446097, guid: 8f8fb05522ca2f449ad6fcf0f914a833, type: 3}
+  - {fileID: 919132149155446097, guid: cc5a85bcb93b0094a8601072188dc20e, type: 3}
+  - {fileID: 919132149155446097, guid: 4dba58f98f2334b41aa33f8fa5fdb8d2, type: 3}
+  - {fileID: 919132149155446097, guid: de2d72c9b9e587445befb45baeeb74cd, type: 3}
+  - {fileID: 919132149155446097, guid: 0f74681617903514aa32672e4674e47d, type: 3}
+  dressingSeed: 48

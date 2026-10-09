@@ -22,6 +22,42 @@
     justify-content: center;
 }
 
+.arena-banner {
+    position: absolute;
+    top: 18%;
+    align-items: center;
+    padding: 10px 34px 12px 34px;
+    background-color: rgba(43, 31, 26, 0.84);
+    border-radius: 18px;
+    border-width: 2px;
+    border-color: rgb(205, 181, 130);
+    opacity: 0;
+    translate: 0 -12px;
+    transition-property: opacity, translate;
+    transition-duration: 0.45s, 0.45s;
+    transition-timing-function: ease-out-cubic, ease-out-cubic;
+}
+
+.arena-banner.shown {
+    opacity: 1;
+    translate: 0 0;
+}
+
+.arena-banner-title {
+    font-size: 40px;
+    color: rgb(234, 217, 176);
+    -unity-font-definition: url("../Fonts/AlegreyaSC-ExtraBold_SDF.asset");
+}
+
+.arena-banner-text {
+    font-size: 17px;
+    color: rgb(242, 228, 196);
+    -unity-font-definition: url("../Fonts/AlegreyaSans-MediumItalic_SDF.asset");
+    -unity-text-align: middle-center;
+    max-width: 520px;
+    white-space: normal;
+}
+
 .battle-hint {
     position: absolute;
     bottom: 12px;

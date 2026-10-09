@@ -1,0 +1,110 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 968de7e14c59f61469c362ef76979315, type: 3}
+  m_Name: 03_BoulderRidge
+  m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Battle.ArenaDefinition
+  displayName: Boulder Ridge
+  description: High ground, big rocks for cover and a crevasse in the saddle. Thrown boulders roll downhill.
+  noMansLand: 2.2
+  centreLine: 0
+  boardColor: {r: 0.8070588, g: 0.75215685, b: 0.6231373, a: 1}
+  rimColor: {r: 0.54901963, g: 0.52156866, b: 0.46666667, a: 1}
+  floorColor: {r: 0.24705884, g: 0.35490197, b: 0.21372549, a: 1}
+  mounds:
+  - center: {x: -2.2, y: 0.2}
+    radius: {x: 3.4, y: 2.1}
+    height: 0.5
+    flatTop: 0.25
+  - center: {x: 3, y: -0.15}
+    radius: {x: 2.8, y: 2}
+    height: 0.4
+    flatTop: 0.2
+  - center: {x: -9.3, y: 4}
+    radius: {x: 2, y: 2.2}
+    height: 0.9
+    flatTop: 0.1
+  - center: {x: 9.2, y: 4.6}
+    radius: {x: 1.9, y: 2}
+    height: 1.1
+    flatTop: 0.1
+  - center: {x: 9.4, y: -3.8}
+    radius: {x: 1.7, y: 1.6}
+    height: 0.6
+    flatTop: 0.1
+  - center: {x: -9.4, y: -4.2}
+    radius: {x: 1.6, y: 1.5}
+    height: 0.5
+    flatTop: 0.1
+  streams: []
+  holes:
+  - center: {x: 0.55, y: -0.05}
+    radius: {x: 0.7, y: 1.5}
+    squareness: 2.5
+  - center: {x: -6.1, y: 0.6}
+    radius: {x: 0.95, y: 0.9}
+    squareness: 2
+  pieces:
+  - prefab: {fileID: 919132149155446097, guid: 2271ed4c4f7431e41ad08a9a7b0f1c37, type: 3}
+    position: {x: -2.7, y: -0.05, z: 0.35}
+    yaw: 20
+    scale: 1
+    collider: 2
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 2271ed4c4f7431e41ad08a9a7b0f1c37, type: 3}
+    position: {x: 2.5, y: -0.05, z: -0.45}
+    yaw: -40
+    scale: 0.85
+    collider: 2
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 374d111f4fbe7294d9f3d6ed4f887f13, type: 3}
+    position: {x: 5.9, y: 0, z: 0.8}
+    yaw: 10
+    scale: 1.1
+    collider: 2
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 2271ed4c4f7431e41ad08a9a7b0f1c37, type: 3}
+    position: {x: -8.8, y: 0, z: 3.6}
+    yaw: 0
+    scale: 1.2
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 2271ed4c4f7431e41ad08a9a7b0f1c37, type: 3}
+    position: {x: 8.9, y: 0, z: 4.3}
+    yaw: 140
+    scale: 1.4
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 4dba58f98f2334b41aa33f8fa5fdb8d2, type: 3}
+    position: {x: -0.8, y: 0, z: -0.4}
+    yaw: 0
+    scale: 1
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 4dba58f98f2334b41aa33f8fa5fdb8d2, type: 3}
+    position: {x: 4.2, y: 0, z: 0.6}
+    yaw: 0
+    scale: 1
+    collider: 0
+    mass: 0
+  trees:
+  - {fileID: 919132149155446097, guid: 79e56156f0a0d524eae50ddd52fd61bb, type: 3}
+  - {fileID: 919132149155446097, guid: 79e56156f0a0d524eae50ddd52fd61bb, type: 3}
+  - {fileID: 919132149155446097, guid: 79e56156f0a0d524eae50ddd52fd61bb, type: 3}
+  - {fileID: 919132149155446097, guid: 2271ed4c4f7431e41ad08a9a7b0f1c37, type: 3}
+  - {fileID: 919132149155446097, guid: 7bcdacaa9f99c6740b606c7532a0e138, type: 3}
+  smallProps:
+  - {fileID: 919132149155446097, guid: 374d111f4fbe7294d9f3d6ed4f887f13, type: 3}
+  - {fileID: 919132149155446097, guid: 374d111f4fbe7294d9f3d6ed4f887f13, type: 3}
+  - {fileID: 919132149155446097, guid: 374d111f4fbe7294d9f3d6ed4f887f13, type: 3}
+  - {fileID: 919132149155446097, guid: 4dba58f98f2334b41aa33f8fa5fdb8d2, type: 3}
+  - {fileID: 919132149155446097, guid: 0f74681617903514aa32672e4674e47d, type: 3}
+  dressingSeed: 33

@@ -33,3 +33,4 @@ MonoBehaviour:
         partId: part_quick_legs
     position: {x: 1.5, y: 2.8}
   buffs: []
+  arena: {fileID: 11400000, guid: ebdfdb2021dc51b409ba442aa2118d97, type: 2}

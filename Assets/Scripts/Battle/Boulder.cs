@@ -97,6 +97,17 @@ namespace RougeLike.Battle
             unit.Hit(dmg, rb.linearVelocity, knock, point, knockDown: power > 0.35f);
         }
 
+        void FixedUpdate()
+        {
+            // Rolling into the brook bogs it down.
+            var arena = Arena.Current;
+            if (rb.isKinematic || arena == null) return;
+            var p = transform.position;
+            var water = arena.WaterAt(p.x, p.z);
+            if (water != null && p.y < water.waterLevel + Diameter * 0.4f)
+                rb.linearVelocity *= 1f - 2.5f * Time.fixedDeltaTime;
+        }
+
         void Update()
         {
             age += Time.deltaTime;

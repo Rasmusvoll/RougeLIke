@@ -11,7 +11,8 @@ namespace RougeLike.Battle
     public static class ArenaDressing
     {
         public static void Scatter(Transform parent, Vector2 clearingHalf, float groundY,
-                                   IReadOnlyList<GameObject> trees, IReadOnlyList<GameObject> smallProps, int seed)
+                                   IReadOnlyList<GameObject> trees, IReadOnlyList<GameObject> smallProps, int seed,
+                                   System.Func<Vector3, bool> blocked = null)
         {
             var rng = new System.Random(seed);
             float R(float a, float b) => a + (float)rng.NextDouble() * (b - a);
@@ -21,7 +22,7 @@ namespace RougeLike.Battle
             {
                 foreach (var q in placed)
                     if ((q - p).sqrMagnitude < gap * gap) return false;
-                return true;
+                return blocked == null || !blocked(p);
             }
 
             void Place(GameObject prefab, Vector3 p, float scale)

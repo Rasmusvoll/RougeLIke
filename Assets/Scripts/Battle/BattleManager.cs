@@ -36,15 +36,11 @@ namespace RougeLike.Battle
         [SerializeField] Color playerColor = new(0.247f, 0.431f, 0.58f);
         [SerializeField] Color enemyColor = new(0.851f, 0.475f, 0.169f);
 
-        [Header("Woodland")]
-        [Tooltip("The parchment board the fight happens on. Without it a plain slab is drawn.")]
-        [SerializeField] GameObject clearingPrefab;
-        [Tooltip("Half size of the clearing model, for laying props around it.")]
-        [SerializeField] Vector2 clearingHalfSize = new(9.2f, 6.6f);
-        [SerializeField] Color forestFloorColor = new(0.31f, 0.42f, 0.227f);
-        [SerializeField] List<GameObject> treePrefabs = new();
-        [SerializeField] List<GameObject> smallPropPrefabs = new();
-        [SerializeField] int dressingSeed = 7;
+        [Header("Arenas")]
+        [Tooltip("Battlefields in rotation: battle N is fought on arena N (wrapping), unless its wave names one.")]
+        [SerializeField] List<ArenaDefinition> arenas = new();
+        [Tooltip("Half size of the board the field sits on.")]
+        [SerializeField] Vector2 boardHalfSize = new(9.2f, 6.6f);
 
         public event Action Changed;
 
@@ -53,6 +49,8 @@ namespace RougeLike.Battle
         public Material BoulderMaterial => boulderMaterial;
         public BattlePhase Phase { get; private set; } = BattlePhase.Placement;
         public EnemyWave Wave { get; private set; }
+        public Arena Arena { get; private set; }
+        public ArenaDefinition ArenaDefinition => Arena != null ? Arena.Definition : null;
         /// <summary>The fight was called after nobody landed a hit for a while.</summary>
         public bool Stalemate { get; private set; }
         public int BattleNumber => RunState.BattlesWon + 1;
@@ -82,6 +80,7 @@ namespace RougeLike.Battle
             playerBuffs = UnitAssembler.ResolveBuffs(RunState.Collection.runBuffIds, database);
             cam = Camera.main;
             if (cam != null) camHome = cam.transform.position;
+            PickWave();
             BuildField();
             SpawnWave();
         }
@@ -90,24 +89,44 @@ namespace RougeLike.Battle
 
         float HalfW => fieldSize.x * 0.5f;
         float HalfD => fieldSize.y * 0.5f;
+        float NoMansLand => ArenaDefinition != null ? ArenaDefinition.noMansLand : noMansLand;
+
+        /// <summary>
+        /// The wave's own arena on its first showing, otherwise the next arena in rotation. Fights
+        /// past the last wave rotate, so a repeated wave still gets a new field each time.
+        /// </summary>
+        ArenaDefinition PickArena()
+        {
+            int i = RunState.BattlesWon;
+            if (Wave != null && Wave.arena != null && i < waves.Count) return Wave.arena;
+            var list = arenas.FindAll(a => a != null);
+            return list.Count > 0 ? list[i % list.Count] : null;
+        }
+
+        public float GroundHeight(Vector3 p) => Arena != null ? Arena.HeightAt(p.x, p.z) : 0f;
 
         void BuildField()
         {
             var field = new GameObject("Field").transform;
             field.SetParent(transform, false);
 
-            var ground = BattleVisuals.Primitive(PrimitiveType.Cube, "Ground", field, BattleVisuals.Lit(groundColor), keepCollider: true);
-            ground.transform.localPosition = new Vector3(0f, -0.25f, 0f);
-            ground.transform.localScale = new Vector3(fieldSize.x + 2f, 0.5f, fieldSize.y + 2f);
-            BuildWoodland(field, ground);
+            var def = PickArena();
+            if (def != null) Arena = Arena.Build(def, field, boardHalfSize);
+            else
+            {
+                var ground = BattleVisuals.Primitive(PrimitiveType.Cube, "Ground", field, BattleVisuals.Lit(groundColor), keepCollider: true);
+                ground.transform.localPosition = new Vector3(0f, -0.25f, 0f);
+                ground.transform.localScale = new Vector3(fieldSize.x + 2f, 0.5f, fieldSize.y + 2f);
+            }
 
             // Invisible walls around the edge keep the fight on screen when units get shoved around.
+            // Thick and tall, so a unit crushed against one by a boulder can't be squeezed through.
             foreach (var (pos, scale) in new[]
             {
-                (new Vector3(0f, 1f, HalfD + 1.25f), new Vector3(fieldSize.x + 3f, 2f, 0.5f)),
-                (new Vector3(0f, 1f, -HalfD - 1.25f), new Vector3(fieldSize.x + 3f, 2f, 0.5f)),
-                (new Vector3(HalfW + 1.25f, 1f, 0f), new Vector3(0.5f, 2f, fieldSize.y + 3f)),
-                (new Vector3(-HalfW - 1.25f, 1f, 0f), new Vector3(0.5f, 2f, fieldSize.y + 3f)),
+                (new Vector3(0f, 2f, HalfD + 2f), new Vector3(fieldSize.x + 6f, 4f, 2f)),
+                (new Vector3(0f, 2f, -HalfD - 2f), new Vector3(fieldSize.x + 6f, 4f, 2f)),
+                (new Vector3(HalfW + 2f, 2f, 0f), new Vector3(2f, 4f, fieldSize.y + 6f)),
+                (new Vector3(-HalfW - 2f, 2f, 0f), new Vector3(2f, 4f, fieldSize.y + 6f)),
             })
             {
                 var wall = new GameObject("Wall").AddComponent<BoxCollider>();
@@ -116,38 +135,22 @@ namespace RougeLike.Battle
                 wall.size = scale;
             }
 
-            float zoneDepth = HalfD - noMansLand;
-            float zoneCenter = noMansLand + zoneDepth * 0.5f;
+            float zoneDepth = HalfD - NoMansLand;
+            float zoneCenter = NoMansLand + zoneDepth * 0.5f;
             playerZone = Zone(field, "Player Zone", playerColor, -zoneCenter, zoneDepth);
             enemyZone = Zone(field, "Enemy Zone", enemyColor, zoneCenter, zoneDepth);
 
             // An inked dashed line down the middle, like a path drawn on the map.
+            if (def != null && !def.centreLine) return;
             var ink = BattleVisuals.Unlit(BattleVisuals.Palette.Ink);
             for (float x = -HalfW + 0.3f; x < HalfW; x += 0.7f)
             {
+                if (Arena != null && Arena.InHole(x, 0f, 1.1f)) continue;
                 var dash = BattleVisuals.Primitive(PrimitiveType.Cube, "Centre Dash", field, ink);
                 dash.transform.localPosition = new Vector3(x, 0.006f, 0f);
                 dash.transform.localScale = new Vector3(0.38f, 0.01f, 0.07f);
                 dash.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
-        }
-
-        /// <summary>The look of the field: a parchment clearing on a forest floor, ringed by trees.</summary>
-        void BuildWoodland(Transform field, GameObject ground)
-        {
-            var floor = BattleVisuals.Primitive(PrimitiveType.Cube, "Forest Floor", field, BattleVisuals.Toon(forestFloorColor, 0f, 0.1f));
-            floor.transform.localPosition = new Vector3(0f, -0.6f, 0f);
-            floor.transform.localScale = new Vector3(90f, 1f, 70f);
-
-            if (clearingPrefab == null) return;
-            ground.GetComponent<Renderer>().enabled = false; // keep its collider, draw the clearing instead
-            var clearing = Instantiate(clearingPrefab, field);
-            clearing.name = "Clearing";
-            clearing.transform.localPosition = Vector3.zero;
-
-            var props = new GameObject("Woodland").transform;
-            props.SetParent(field, false);
-            ArenaDressing.Scatter(props, clearingHalfSize, -0.1f, treePrefabs, smallPropPrefabs, dressingSeed);
         }
 
         GameObject Zone(Transform parent, string name, Color color, float z, float depth)
@@ -167,17 +170,23 @@ namespace RougeLike.Battle
         }
 
         public Vector3 ClampToPlayerZone(Vector3 p, float radius = 0.5f) =>
-            new(Mathf.Clamp(p.x, -HalfW + radius, HalfW - radius), 0f, Mathf.Clamp(p.z, -HalfD + radius, -noMansLand - radius));
+            new(Mathf.Clamp(p.x, -HalfW + radius, HalfW - radius), 0f, Mathf.Clamp(p.z, -HalfD + radius, -NoMansLand - radius));
 
         // Setup
 
-        void SpawnWave()
+        void PickWave()
         {
             if (waves.Count == 0) { Debug.LogError("BattleManager has no enemy waves."); return; }
             Wave = waves[Mathf.Min(RunState.BattlesWon, waves.Count - 1)];
+        }
+
+        void SpawnWave()
+        {
+            if (Wave == null) return;
             foreach (var e in Wave.units)
             {
-                var pos = new Vector3(e.position.x, 0f, Mathf.Max(e.position.y, noMansLand + 0.5f));
+                var pos = new Vector3(e.position.x, 0f, Mathf.Max(e.position.y, NoMansLand + 0.5f));
+                pos.y = GroundHeight(pos);
                 var u = BattleUnit.Create(e.blueprint, Team.Enemy, Wave.buffs, this, pos, enemyColor);
                 if (u == null) continue;
                 EnemyUnits.Add(u);
@@ -193,7 +202,9 @@ namespace RougeLike.Battle
         public BattleUnit PlacePlayerUnit(int index, Vector3 position)
         {
             if (Phase != BattlePhase.Placement || !CanField(index) || PlacedUnit(index) != null) return null;
-            var u = BattleUnit.Create(Roster[index], Team.Player, playerBuffs, this, ClampToPlayerZone(position), playerColor);
+            var p = ClampToPlayerZone(position);
+            p.y = GroundHeight(p);
+            var u = BattleUnit.Create(Roster[index], Team.Player, playerBuffs, this, p, playerColor);
             if (u == null) return null;
             u.BlueprintIndex = index;
             PlayerUnits.Add(u);
@@ -224,7 +235,7 @@ namespace RougeLike.Battle
                 {
                     int row = slot / perRow, col = slot % perRow;
                     int inRow = Mathf.Min(perRow, Roster.Count - row * perRow);
-                    p = new Vector3((col - (inRow - 1) * 0.5f) * 2.2f, 0f, -noMansLand - 1.5f - row * 2.2f);
+                    p = new Vector3((col - (inRow - 1) * 0.5f) * 2.2f, 0f, -NoMansLand - 1.2f - row * 1.8f);
                     slot++;
                 } while (PlayerUnits.Exists(u => (u.transform.position - p).sqrMagnitude < 1.5f));
                 PlacePlayerUnit(i, p);

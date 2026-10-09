@@ -46,3 +46,4 @@ MonoBehaviour:
         partId: part_spitter
     position: {x: 0, y: 4.2}
   buffs: []
+  arena: {fileID: 11400000, guid: 1ed6e4199eadd7946abd5393372effdd, type: 2}

@@ -116,10 +116,93 @@ def grass_tuft():
     return b
 
 
+# Battle-arena features. These carry colliders in the game (ArenaDefinition pieces), so keep each
+# prop's footprint close to its description.
+
+def crate():
+    """A 0.8 m wooden crate with darker plank bands and a cross brace."""
+    b = Builder()
+    b.box((0, 0.4, 0), (0.8, 0.8, 0.8), "Wood")
+    for y in (0.06, 0.74):
+        b.box((0, y, 0), (0.84, 0.1, 0.84), "Bark")
+    for side in (-1, 1):
+        b.box((0, 0.4, side * 0.41), (0.1, 0.75, 0.04), "Bark:noline", rot=(0, 0, 45))
+    return b
+
+
+def log_pile():
+    """Three logs stacked into a low wall, 3 m long along X, about 0.9 m high."""
+    b = Builder()
+    for x, y, z in ((-0.05, 0.25, -0.27), (0.08, 0.25, 0.27), (0.0, 0.68, 0.0)):
+        b.tube((x - 1.5, y, z), (x + 1.5, y, z), 0.27, 0.25, "Bark", segs=8)
+        for end, r in ((-1.5, 0.27), (1.5, 0.25)):
+            b.tube((x + end * 1.005, y, z), (x + end * 1.02, y, z), r * 0.85, r * 0.8, "Wood:noline", segs=8)
+    for x in (-1.25, 1.25):
+        b.box((x, 0.45, 0), (0.12, 0.9, 0.9), "Wood")  # stakes holding the stack
+    return b
+
+
+def plank_wall():
+    """A broken sawmill wall: two posts and uneven planks, 2.4 m wide along X, 1.1 m high."""
+    b = Builder()
+    for x in (-1.15, 1.15):
+        b.box((x, 0.6, 0), (0.18, 1.2, 0.18), "Bark")
+    for i, (y, w, off, tilt) in enumerate(((0.2, 2.4, 0, 0), (0.45, 2.3, -0.05, 2), (0.7, 1.6, -0.4, -4), (0.95, 1.0, 0.6, 6))):
+        b.box((off, y, 0.11), (w, 0.22, 0.06), "Wood" if i % 2 else "Ochre", rot=(0, 0, tilt))
+    return b
+
+
+def log_bridge():
+    """Two logs along Z with planks across them: a footbridge over the brook, deck top at about 0.08."""
+    b = Builder()
+    for x in (-0.55, 0.55):
+        b.tube((x, -0.05, -2.2), (x, -0.05, 2.2), 0.13, 0.12, "Bark", segs=7)
+    z = -2.1
+    i = 0
+    while z <= 2.1:
+        b.box((0.03 * ((i % 3) - 1), 0.05, z), (1.55 + 0.1 * (i % 2), 0.07, 0.24), "Wood", rot=(0, 2 * ((i % 3) - 1), 0))
+        z += 0.3
+        i += 1
+    return b
+
+
+def reeds():
+    """A clump of reeds with cattail heads, for brook banks."""
+    b = Builder()
+    for i, (x, z, h, lean) in enumerate(((0, 0, 0.8, 0), (0.12, 0.06, 0.65, 12), (-0.1, 0.05, 0.7, -10),
+                                         (0.05, -0.1, 0.55, 8), (-0.06, -0.08, 0.6, -6))):
+        t = math.radians(lean)
+        top = (x + math.sin(t) * h, h, z)
+        b.tube((x, 0, z), top, 0.03, 0.01, "Moss:noline", segs=4)
+        if i < 3:
+            b.tube((top[0] - math.sin(t) * 0.16, h - 0.16, z), (top[0] - math.sin(t) * 0.02, h - 0.02, z), 0.045, 0.04, "Bark", segs=6)
+    return b
+
+
+def lily_pads():
+    b = Builder()
+    for x, z, r in ((0, 0, 0.22), (0.35, 0.15, 0.15), (-0.2, 0.3, 0.13)):
+        b.tube((x, 0, z), (x, 0.02, z), r, r, "Moss:noline", segs=9)
+    b.blob((0.05, 0.05, 0.02), (0.1, 0.07, 0.1), "Cream:noline", subdiv=1)
+    return b
+
+
+def boulder():
+    """A big craggy boulder, about 1.6 m across and 1.1 m high: cover on the hillside."""
+    b = Builder()
+    b.blob((0, 0.5, 0), (1.6, 1.15, 1.4), "Stone", subdiv=1, rot=(4, 30, -6))
+    b.blob((-0.4, 0.95, 0.1), (0.8, 0.5, 0.8), "StoneLight", subdiv=1, rot=(0, -20, 10))
+    b.blob((0.55, 0.2, 0.35), (0.6, 0.45, 0.55), "Stone", subdiv=1, rot=(0, 40, 0))
+    b.blob((0.2, 0.08, -0.6), (0.5, 0.25, 0.4), "Moss:noline", subdiv=1)
+    return b
+
+
 ASSETS = {
     "": {
         "Clearing": clearing, "PineTree": pine_tree, "OakTree": oak_tree, "BirchTree": birch_tree,
         "Rock": rock, "Mushrooms": mushrooms, "Stump": stump, "Bush": bush, "GrassTuft": grass_tuft,
+        "Crate": crate, "LogPile": log_pile, "PlankWall": plank_wall, "LogBridge": log_bridge,
+        "Reeds": reeds, "LilyPads": lily_pads, "Boulder": boulder,
     },
 }
 

@@ -6,8 +6,9 @@ using UnityEngine.UIElements;
 namespace RougeLike.Battle
 {
     /// <summary>
-    /// The battle UI and placement input. Top bar: battle name, counts, speed and Start. Bottom bar:
-    /// the player's units as cards to drag onto the blue half. A result panel when the fight ends; after
+    /// The battle UI and placement input. Top bar: battle name, arena, counts, speed and Start. A banner
+    /// names the arena when the battle opens. Bottom bar: the player's units as cards to drag onto the
+    /// blue half. A result panel when the fight ends; after
     /// a win it deals out the reward offers to pick one from.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
@@ -19,7 +20,7 @@ namespace RougeLike.Battle
         [SerializeField] Camera worldCamera;
         [SerializeField] StyleSheet[] styleSheets;
 
-        VisualElement root, bottomBar, cardRow, resultPanel, rewardRow;
+        VisualElement root, bottomBar, cardRow, resultPanel, rewardRow, arenaBanner;
         Label titleLabel, infoLabel, hintLabel, resultTitle, resultText;
         Button startButton, speedButton, autoButton, clearButton, resultButton;
         bool rewardsDealt, claimed;
@@ -73,6 +74,19 @@ namespace RougeLike.Battle
             hintLabel.pickingMode = PickingMode.Ignore;
             middle.Add(hintLabel);
 
+            var arena = battle.ArenaDefinition;
+            if (arena != null)
+            {
+                arenaBanner = Add(middle, "arena-banner");
+                arenaBanner.pickingMode = PickingMode.Ignore;
+                arenaBanner.Add(L(arena.displayName, "arena-banner-title"));
+                if (!string.IsNullOrEmpty(arena.description)) arenaBanner.Add(L(arena.description, "arena-banner-text"));
+                // Hold for a moment, then fade away (the arena stays named in the top bar).
+                arenaBanner.schedule.Execute(() => arenaBanner.AddToClassList("shown")).StartingIn(50);
+                arenaBanner.schedule.Execute(() => arenaBanner.RemoveFromClassList("shown")).StartingIn(3200);
+                arenaBanner.schedule.Execute(() => arenaBanner.style.display = DisplayStyle.None).StartingIn(3800);
+            }
+
             resultPanel = Add(middle, "panel", "battle-result");
             resultTitle = L("", "battle-result-title");
             resultPanel.Add(resultTitle);
@@ -111,7 +125,8 @@ namespace RougeLike.Battle
             int alivePlayers = battle.PlayerUnits.FindAll(u => u.IsAlive).Count;
             int aliveEnemies = battle.EnemyUnits.FindAll(u => u.IsAlive).Count;
 
-            titleLabel.text = $"Battle {battle.BattleNumber}" + (battle.Wave != null ? $" · {battle.Wave.displayName}" : "");
+            titleLabel.text = $"Battle {battle.BattleNumber}" + (battle.Wave != null ? $" · {battle.Wave.displayName}" : "")
+                + (battle.ArenaDefinition != null ? $" at {battle.ArenaDefinition.displayName}" : "");
             infoLabel.text = placing
                 ? $"{battle.PlayerUnits.Count} of your units placed · {battle.EnemyUnits.Count} enemies"
                 : $"Your units {alivePlayers} · Enemies {aliveEnemies}";

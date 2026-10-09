@@ -40,6 +40,7 @@ namespace RougeLike.Battle
         const float FootTurnShare = 0.65f;    // share of turning done by feet pushing sideways where they stand
         const float BellyDrag = 4f;           // ground drag on an end no legs hold up, per second
 
+        const float WaterDrag = 2.5f;         // extra damping while wading, per second
         static PhysicsMaterial slippery, grippy;
 
         public UnitInstance Unit { get; private set; }
@@ -75,7 +76,7 @@ namespace RougeLike.Battle
         BattleManager battle;
         Rigidbody body;
         BoxCollider box;
-        Transform visual, overlay;
+        Transform visual, overlay, ring;
         UnitAnimator anim;
         HealthBar bar;
         float height;
@@ -95,7 +96,12 @@ namespace RougeLike.Battle
         float attackTimer, retargetTimer;
         readonly Dictionary<AbilityDefinition, float> abilityTimers = new();
 
-        float balance = 1f, toppledUntil = -1f, walkPhase;
+        float balance = 1f, toppledUntil = -1f, walkPhase, lastFootingTime = -1f, splashTimer;
+        readonly RaycastHit[] obstacleHits = new RaycastHit[8];
+        Vector3 waypoint;
+        float waypointTimer;
+        int detourSide;
+        float detourUntil;
         bool gettingUp;
         BattleUnit pendingHit;
         float pendingHitTime;
@@ -159,10 +165,11 @@ namespace RougeLike.Battle
             // Ring and health bar live outside the body so they stay flat and upright when it tips.
             overlay = new GameObject($"{name} Overlay").transform;
             overlay.SetParent(battle.UnitRoot, false);
-            var ring = BattleVisuals.Primitive(PrimitiveType.Cylinder, "Team Ring", overlay, BattleVisuals.Unlit(teamColor));
-            ring.transform.localPosition = new Vector3(0f, 0.01f, 0f);
-            ring.transform.localScale = new Vector3(Radius * 1.5f, 0.005f, Radius * 1.5f);
-            ring.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            var ringGo = BattleVisuals.Primitive(PrimitiveType.Cylinder, "Team Ring", overlay, BattleVisuals.Unlit(teamColor));
+            ring = ringGo.transform;
+            ring.localPosition = new Vector3(0f, 0.01f, 0f);
+            ring.localScale = new Vector3(Radius * 1.5f, 0.005f, Radius * 1.5f);
+            ringGo.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             bar = HealthBar.Create(overlay, height + 0.35f, teamColor);
             bar.Set(1f);
 
@@ -299,7 +306,14 @@ namespace RougeLike.Battle
 
         float Tilt => Vector3.Angle(transform.up, Vector3.up);
         bool Toppled => Time.time < toppledUntil || gettingUp;
-        bool Grounded => transform.position.y < 0.35f;
+        /// <summary>Touching something it can stand on (the ground, a slope, a crate, another unit) just now.</summary>
+        bool Grounded => Time.fixedTime - lastFootingTime < 0.1f;
+
+        void OnCollisionStay(Collision c)
+        {
+            for (int i = 0; i < c.contactCount; i++)
+                if (c.GetContact(i).normal.y > 0.5f) { lastFootingTime = Time.fixedTime; return; }
+        }
 
         // Decisions (per frame)
 
@@ -535,9 +549,9 @@ namespace RougeLike.Battle
             }
 
             // Walk toward the target; once close, only shuffle the attack part into reach.
-            float speed = Unit.Stats.Get(StatType.Speed);
+            float speed = Unit.Stats.Get(StatType.Speed) * (arena != null ? arena.SpeedFactor(transform.position) : 1f);
             Vector3 desired;
-            if (!close) desired = to.normalized * speed;
+            if (!close) desired = Flat(Waypoint(arena) - transform.position).normalized * speed;
             else if (AttackGap(target) > Reach) desired = Flat(target.transform.position - AttackPoint).normalized * speed * 0.4f;
             else desired = Vector3.zero;
 
@@ -562,6 +576,20 @@ namespace RougeLike.Battle
         /// tail swings the body round its front, and lopsided legs pull the walk into a curve.
         /// </summary>
         void PushWithFeet(Vector3 accel, float yawAccel, bool stepping)
+            var arena = battle.Arena;
+            float wade = arena != null ? arena.WadeDepth(transform.position) : 0f;
+            if (wade > 0f)
+            {
+                body.AddForce(-vel * WaterDrag, ForceMode.Acceleration);
+                splashTimer -= dt;
+                if (splashTimer <= 0f && vel.sqrMagnitude > 0.5f)
+                {
+                    splashTimer = 0.35f;
+                    var s = arena.WaterAt(transform.position.x, transform.position.z);
+                    BattleEffects.Spark(new Vector3(transform.position.x, s.waterLevel, transform.position.z),
+                                        0.35f + Radius * 0.4f, Color.Lerp(s.waterColor, Color.white, 0.5f));
+                }
+            }
         {
             if (feet.Count == 0) return;
             var com = body.worldCenterOfMass;
@@ -576,6 +604,8 @@ namespace RougeLike.Battle
             if (n == 0) return;
 
             body.AddTorque(Vector3.up * yawAccel * (1f - FootTurnShare), ForceMode.Acceleration);
+            desired = SteerAroundObstacles(desired);
+            if (arena != null) desired = arena.SteerAroundHoles(transform.position, desired, Radius);
             // Feet at r_i pushing along up × r_i with strength k give a torque of k·Σ|r_i|² about up.
             float iy = Mathf.Max(0.01f, body.inertiaTensor.y);
             float k = sumR2 > 0.02f ? yawAccel * FootTurnShare * iy / (body.mass * sumR2) : 0f;
@@ -590,6 +620,55 @@ namespace RougeLike.Battle
                 body.AddForceAtPosition(a * body.mass, p, ForceMode.Force);
             }
         }
+        /// <summary>Where to walk toward the target: straight at it, or round whatever is in the way.</summary>
+        Vector3 Waypoint(Arena arena)
+        {
+            if (arena == null || arena.Nav == null) return target.transform.position;
+            waypointTimer -= Time.fixedDeltaTime;
+            if (waypointTimer <= 0f)
+            {
+                waypointTimer = 0.4f;
+                waypoint = arena.Nav.NextWaypoint(transform.position, target.transform.position);
+            }
+            // Close to an intermediate waypoint: look again for the next one.
+            if (Flat(waypoint - transform.position).sqrMagnitude < 0.2f) waypointTimer = 0f;
+            return waypoint;
+        }
+
+        /// <summary>
+        /// Slides along fixed obstacles (log piles, rocks, crate stacks) instead of walking into them,
+        /// keeping to one side until the way ahead is clear. Units and loose props are just pushed.
+        /// </summary>
+        Vector3 SteerAroundObstacles(Vector3 desired)
+        {
+            if (desired == Vector3.zero) return desired;
+            var dir = desired.normalized;
+            var from = new Vector3(transform.position.x, transform.position.y + Mathf.Min(height * 0.5f, 0.45f), transform.position.z);
+            int n = Physics.SphereCastNonAlloc(from, Radius * 0.7f, dir, obstacleHits, 1.3f, ~0, QueryTriggerInteraction.Ignore);
+            float nearest = float.MaxValue;
+            Vector3 normal = Vector3.zero;
+            for (int i = 0; i < n; i++)
+            {
+                var h = obstacleHits[i];
+                var rb = h.collider.attachedRigidbody;
+                if (rb != null && rb != body && !rb.isKinematic) continue; // units, loose crates: shove them
+                if (rb == body || h.normal.y > 0.6f || h.distance <= 0f) continue; // self, ground, already touching
+                if (h.distance < nearest) { nearest = h.distance; normal = Flat(h.normal).normalized; }
+            }
+            if (normal == Vector3.zero)
+            {
+                if (Time.time > detourUntil) detourSide = 0;
+                return desired;
+            }
+            // Pick a side once (the one that turns away least) and stick with it for a moment.
+            var tangent = Vector3.Cross(Vector3.up, normal);
+            if (detourSide == 0) detourSide = Vector3.Dot(tangent, dir) >= 0f ? 1 : -1;
+            detourUntil = Time.time + 0.8f;
+            float block = 1f - Mathf.Clamp01(nearest / 1.3f);
+            var slide = (tangent * detourSide + normal * 0.25f).normalized;
+            return Vector3.Lerp(dir, slide, 0.35f + 0.65f * block).normalized * desired.magnitude;
+        }
+
 
         /// <summary>The end no legs hold up scrapes along the ground, so the legs have to drag it.</summary>
         void DragBelly()
@@ -613,12 +692,20 @@ namespace RougeLike.Battle
             if (overlay != null && overlay.gameObject.activeSelf)
             {
                 var p = transform.position;
-                overlay.SetPositionAndRotation(new Vector3(p.x, Mathf.Max(0f, p.y), p.z), Quaternion.identity);
+                var arena = battle.Arena;
+                float ground = arena != null ? arena.HeightAt(p.x, p.z) : 0f;
+                overlay.SetPositionAndRotation(new Vector3(p.x, Mathf.Max(ground, p.y), p.z), Quaternion.identity);
+                if (arena != null)
+                {
+                    var s = arena.WaterAt(p.x, p.z);
+                    ring.position = new Vector3(p.x, Mathf.Max(ground, s != null ? s.waterLevel : ground) + 0.01f, p.z);
+                    ring.rotation = Quaternion.FromToRotation(Vector3.up, arena.NormalAt(p.x, p.z));
+                }
             }
             // Feed the animator: walk from the body's velocity, look at the target, flail when down.
             if (anim != null && anim.enabled)
             {
-                anim.SetMotion(body.isKinematic ? Vector3.zero : body.linearVelocity, Grounded);
+                anim.SetMotion(body.isKinematic ? Vector3.zero : body.linearVelocity, Grounded || body.isKinematic);
                 anim.SetLookTarget(target != null && target.IsAlive ? target.CenterPosition : null);
                 anim.Flailing = Toppled && Time.time < toppledUntil;
             }
@@ -642,3 +729,4 @@ namespace RougeLike.Battle
         static Vector3 Flat(Vector3 v) => new(v.x, 0f, v.z);
     }
 }
+                // On the ground under the unit, lying along the slope there.

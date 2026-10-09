@@ -21,5 +21,7 @@ namespace RougeLike.Battle
         public List<EnemyWaveEntry> units = new();
         [Tooltip("Buffs every enemy in this wave gets, for tuning later waves.")]
         public List<BuffDefinition> buffs = new();
+        [Tooltip("Where this wave is fought the first time it comes up. Empty uses the arena rotation.")]
+        public ArenaDefinition arena;
     }
 }

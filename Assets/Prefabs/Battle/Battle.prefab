@@ -257,24 +257,12 @@ MonoBehaviour:
   groundColor: {r: 0.91764706, g: 0.8509804, b: 0.6901961, a: 1}
   playerColor: {r: 0.24705882, g: 0.43137255, b: 0.5803922, a: 1}
   enemyColor: {r: 0.8509804, g: 0.4745098, b: 0.16862746, a: 1}
-  clearingPrefab: {fileID: 919132149155446097, guid: bb51e6bbaf4e84c4aa2f58f1a223485f, type: 3}
-  clearingHalfSize: {x: 9.2, y: 6.6}
-  forestFloorColor: {r: 0.30980393, g: 0.41960785, b: 0.22745098, a: 1}
-  treePrefabs:
-  - {fileID: 919132149155446097, guid: 79e56156f0a0d524eae50ddd52fd61bb, type: 3}
-  - {fileID: 919132149155446097, guid: 79e56156f0a0d524eae50ddd52fd61bb, type: 3}
-  - {fileID: 919132149155446097, guid: 7bcdacaa9f99c6740b606c7532a0e138, type: 3}
-  - {fileID: 919132149155446097, guid: 7bcdacaa9f99c6740b606c7532a0e138, type: 3}
-  - {fileID: 919132149155446097, guid: 63815878d9cf5a04fb8dbe3878f990b9, type: 3}
-  - {fileID: 919132149155446097, guid: 0f74681617903514aa32672e4674e47d, type: 3}
-  smallPropPrefabs:
-  - {fileID: 919132149155446097, guid: 374d111f4fbe7294d9f3d6ed4f887f13, type: 3}
-  - {fileID: 919132149155446097, guid: de2d72c9b9e587445befb45baeeb74cd, type: 3}
-  - {fileID: 919132149155446097, guid: 4dba58f98f2334b41aa33f8fa5fdb8d2, type: 3}
-  - {fileID: 919132149155446097, guid: 4dba58f98f2334b41aa33f8fa5fdb8d2, type: 3}
-  - {fileID: 919132149155446097, guid: 8f8fb05522ca2f449ad6fcf0f914a833, type: 3}
-  - {fileID: 919132149155446097, guid: 0f74681617903514aa32672e4674e47d, type: 3}
-  dressingSeed: 7
+  arenas:
+  - {fileID: 11400000, guid: ebdfdb2021dc51b409ba442aa2118d97, type: 2}
+  - {fileID: 11400000, guid: 1ed6e4199eadd7946abd5393372effdd, type: 2}
+  - {fileID: 11400000, guid: 7ec9c0787c9f196409f63da4230812e5, type: 2}
+  - {fileID: 11400000, guid: 7b1d573b6b449ab45bb7a0b5faef2121, type: 2}
+  boardHalfSize: {x: 9.2, y: 6.6}
 --- !u!1 &5419415448300431981
 GameObject:
   m_ObjectHideFlags: 0

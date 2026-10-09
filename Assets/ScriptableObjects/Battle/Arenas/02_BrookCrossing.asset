@@ -1,0 +1,119 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 968de7e14c59f61469c362ef76979315, type: 3}
+  m_Name: 02_BrookCrossing
+  m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Battle.ArenaDefinition
+  displayName: Brook Crossing
+  description: A shallow brook cuts the field. Wading is slow, the log bridge is not, and the sinkhole downstream swallows anyone pushed in.
+  noMansLand: 1.9
+  centreLine: 0
+  boardColor: {r: 0.84988236, g: 0.8065098, b: 0.61890197, a: 1}
+  rimColor: {r: 0.8039216, g: 0.70980394, b: 0.50980395, a: 1}
+  floorColor: {r: 0.30980393, g: 0.41960785, b: 0.22745098, a: 1}
+  mounds: []
+  streams:
+  - z: 0
+    halfWidth: 0.75
+    bank: 0.65
+    depth: 0.35
+    meander: 0.3
+    meanderFrequency: 0.45
+    waterLevel: -0.08
+    wadeSpeed: 0.4
+    waterColor: {r: 0.43529412, g: 0.6117647, b: 0.61960787, a: 1}
+    bridges:
+    - 0
+    bridgeHalfWidth: 0.6
+  holes:
+  - center: {x: 4.6, y: 0.26338923}
+    radius: {x: 1.1, y: 0.95}
+    squareness: 2
+  pieces:
+  - prefab: {fileID: 919132149155446097, guid: a5ea1c8fd25626f49b03cb512a65d6ad, type: 3}
+    position: {x: 0, y: -0.06, z: 0}
+    yaw: 0
+    scale: 1
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 374d111f4fbe7294d9f3d6ed4f887f13, type: 3}
+    position: {x: -4.6, y: -0.05, z: -0.26338923}
+    yaw: 30
+    scale: 1.15
+    collider: 2
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 3a7550ea8cdac174bbdaedd0dce83126, type: 3}
+    position: {x: -2.4, y: 0.28, z: -0.06458737}
+    yaw: 0
+    scale: 1
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 3a7550ea8cdac174bbdaedd0dce83126, type: 3}
+    position: {x: 6.6, y: 0.28, z: -0.14877439}
+    yaw: 70
+    scale: 0.9
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 3a7550ea8cdac174bbdaedd0dce83126, type: 3}
+    position: {x: -6.6, y: 0.28, z: -0.051225614}
+    yaw: 140
+    scale: 0.8
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 4113c3824fac68b43bacfa19af3e3013, type: 3}
+    position: {x: -6.2, y: 0, z: 1.1966819}
+    yaw: 0
+    scale: 1
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 4113c3824fac68b43bacfa19af3e3013, type: 3}
+    position: {x: -3.1, y: 0, z: -1.6453763}
+    yaw: 40
+    scale: 0.9
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 4113c3824fac68b43bacfa19af3e3013, type: 3}
+    position: {x: -1.3, y: 0, z: 1.1343402}
+    yaw: 80
+    scale: 1
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 4113c3824fac68b43bacfa19af3e3013, type: 3}
+    position: {x: 1.5, y: 0, z: -1.1125307}
+    yaw: 10
+    scale: 1.1
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 4113c3824fac68b43bacfa19af3e3013, type: 3}
+    position: {x: 3.2, y: 0, z: 1.6474376}
+    yaw: 0
+    scale: 0.9
+    collider: 0
+    mass: 0
+  - prefab: {fileID: 919132149155446097, guid: 4113c3824fac68b43bacfa19af3e3013, type: 3}
+    position: {x: 6.3, y: 0, z: -1.2094563}
+    yaw: 120
+    scale: 1
+    collider: 0
+    mass: 0
+  trees:
+  - {fileID: 919132149155446097, guid: 7bcdacaa9f99c6740b606c7532a0e138, type: 3}
+  - {fileID: 919132149155446097, guid: 7bcdacaa9f99c6740b606c7532a0e138, type: 3}
+  - {fileID: 919132149155446097, guid: 79e56156f0a0d524eae50ddd52fd61bb, type: 3}
+  - {fileID: 919132149155446097, guid: 0f74681617903514aa32672e4674e47d, type: 3}
+  - {fileID: 919132149155446097, guid: 0f74681617903514aa32672e4674e47d, type: 3}
+  smallProps:
+  - {fileID: 919132149155446097, guid: 0f74681617903514aa32672e4674e47d, type: 3}
+  - {fileID: 919132149155446097, guid: 4113c3824fac68b43bacfa19af3e3013, type: 3}
+  - {fileID: 919132149155446097, guid: 4113c3824fac68b43bacfa19af3e3013, type: 3}
+  - {fileID: 919132149155446097, guid: 4dba58f98f2334b41aa33f8fa5fdb8d2, type: 3}
+  - {fileID: 919132149155446097, guid: 374d111f4fbe7294d9f3d6ed4f887f13, type: 3}
+  dressingSeed: 21
