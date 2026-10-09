@@ -119,21 +119,7 @@ namespace RougeLike.Battle
                 ground.transform.localScale = new Vector3(fieldSize.x + 2f, 0.5f, fieldSize.y + 2f);
             }
 
-            // Invisible walls around the edge keep the fight on screen when units get shoved around.
-            // Thick and tall, so a unit crushed against one by a boulder can't be squeezed through.
-            foreach (var (pos, scale) in new[]
-            {
-                (new Vector3(0f, 2f, HalfD + 2f), new Vector3(fieldSize.x + 6f, 4f, 2f)),
-                (new Vector3(0f, 2f, -HalfD - 2f), new Vector3(fieldSize.x + 6f, 4f, 2f)),
-                (new Vector3(HalfW + 2f, 2f, 0f), new Vector3(2f, 4f, fieldSize.y + 6f)),
-                (new Vector3(-HalfW - 2f, 2f, 0f), new Vector3(2f, 4f, fieldSize.y + 6f)),
-            })
-            {
-                var wall = new GameObject("Wall").AddComponent<BoxCollider>();
-                wall.transform.SetParent(field, false);
-                wall.transform.localPosition = pos;
-                wall.size = scale;
-            }
+            // No walls: the edge of the board is a drop, and shoving enemies off it is half the fight.
 
             float zoneDepth = HalfD - NoMansLand;
             float zoneCenter = NoMansLand + zoneDepth * 0.5f;

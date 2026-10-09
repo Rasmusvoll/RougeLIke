@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f5f05f4f94b4f6eae4a34075b084976, type: 3}
+  m_Name: Juggernaut
+  m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Robots.ChassisDefinition
+  id: robot_chassis_juggernaut
+  displayName: Juggernaut
+  icon: {fileID: 21300000, guid: 616e9c183186c1347bee57b1823f03b0, type: 3}
+  rarity: 2
+  prefab: {fileID: 0}
+  baseStats:
+  - stat: 0
+    value: 150
+  - stat: 2
+    value: 2
+  slots:
+  - slotId: front
+    type: 0
+    localPosition: {x: 0, y: -0.10800001, z: 0.575}
+    mirror: 0
+  - slotId: top
+    type: 3
+    localPosition: {x: 0, y: 0.18, z: 0}
+    mirror: 0
+  - slotId: rear
+    type: 4
+    localPosition: {x: 0, y: 0, z: -0.575}
+    mirror: 0
+  - slotId: side_left
+    type: 1
+    localPosition: {x: -0.475, y: 0, z: 0}
+    mirror: 0
+  - slotId: side_right
+    type: 1
+    localPosition: {x: 0.475, y: 0, z: 0}
+    mirror: 0
+  - slotId: wheel_front_left
+    type: 2
+    localPosition: {x: -0.575, y: -0.054000005, z: 0.345}
+    mirror: 0
+  - slotId: wheel_front_right
+    type: 2
+    localPosition: {x: 0.575, y: -0.054000005, z: 0.345}
+    mirror: 0
+  - slotId: wheel_back_left
+    type: 2
+    localPosition: {x: -0.575, y: -0.054000005, z: -0.345}
+    mirror: 0
+  - slotId: wheel_back_right
+    type: 2
+    localPosition: {x: 0.575, y: -0.054000005, z: -0.345}
+    mirror: 0
+  energy: 13
+  moveScale: 1
+  builtInLegs: 0
+  builtInStride: 2
+  innateAbilities: []
+  size: {x: 0.95, y: 0.36, z: 1.15}
+  mass: 18
+  color: {r: 0.24705882, g: 0.43137255, b: 0.5803922, a: 1}

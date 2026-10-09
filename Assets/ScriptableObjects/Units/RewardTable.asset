@@ -13,37 +13,46 @@ MonoBehaviour:
   m_Name: RewardTable
   m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Units.RewardTable
   entries:
-  - kind: 0
-    content: {fileID: 11400000, guid: 68796f61e3296fe4cb4a282c3ada18c3, type: 2}
-    weight: 2
-  - kind: 1
-    content: {fileID: 11400000, guid: 650ba7a8db5f9b942b0219a2257fa981, type: 2}
-    weight: 4
-  - kind: 1
-    content: {fileID: 11400000, guid: 2f097ffa44d36cc4492575bc9feace1f, type: 2}
-    weight: 3
-  - kind: 1
-    content: {fileID: 11400000, guid: 7c0bd393a3109834490b4bc977cdbf2d, type: 2}
-    weight: 3
-  - kind: 1
-    content: {fileID: 11400000, guid: 699908f9906477d46b0c1532bbdd3183, type: 2}
-    weight: 3
-  - kind: 1
-    content: {fileID: 11400000, guid: f9e0522d2a11649489318fb5cbb7cd4b, type: 2}
-    weight: 5
-  - kind: 1
-    content: {fileID: 11400000, guid: 8011b17aa76daa646866e419f51c0ba8, type: 2}
-    weight: 2
-  - kind: 1
-    content: {fileID: 11400000, guid: f79c58304cee1554a83ec5d0688b89c9, type: 2}
-    weight: 3
   - kind: 2
     content: {fileID: 11400000, guid: 8ff437c3a114efd4b8f095f8b7b6b38c, type: 2}
     weight: 2
   - kind: 2
     content: {fileID: 11400000, guid: 9a78dc805472d3841a7ba2e539be5f19, type: 2}
     weight: 2
-  - kind: 1
-    content: {fileID: 11400000, guid: 1f771cd4f174f8a4f90dbca505877bf1, type: 2}
+  - kind: 0
+    content: {fileID: 11400000, guid: 12e427aa1a3560043a70d23ea2c8eb2d, type: 2}
     weight: 1
+  - kind: 0
+    content: {fileID: 11400000, guid: 773852540d92dbb409813734ff80a499, type: 2}
+    weight: 1
+  - kind: 1
+    content: {fileID: 11400000, guid: fc77b1cff88d8bc4c9a988c1126b9a61, type: 2}
+    weight: 3
+  - kind: 1
+    content: {fileID: 11400000, guid: dcb4ffb5324b1994da352ccc80acefc3, type: 2}
+    weight: 2
+  - kind: 1
+    content: {fileID: 11400000, guid: 907a4523841f19f4aa2c3e1b8d30c310, type: 2}
+    weight: 3
+  - kind: 1
+    content: {fileID: 11400000, guid: ac9281cf7e6df304b9319902e2765904, type: 2}
+    weight: 2
+  - kind: 1
+    content: {fileID: 11400000, guid: 1e14d1aecdfb9e341a43c21d3c99259c, type: 2}
+    weight: 1
+  - kind: 1
+    content: {fileID: 11400000, guid: acc58520c12a0064c811840b3ba94187, type: 2}
+    weight: 1
+  - kind: 1
+    content: {fileID: 11400000, guid: ece6a737b4faf0f44910bf4ca0facb9c, type: 2}
+    weight: 2
+  - kind: 1
+    content: {fileID: 11400000, guid: 559164372ea6a9940be9b56a55389bc1, type: 2}
+    weight: 2
+  - kind: 1
+    content: {fileID: 11400000, guid: 783d8e72086ffb24a92e14ac85e00776, type: 2}
+    weight: 3
+  - kind: 1
+    content: {fileID: 11400000, guid: 9b2ffd5c425e85b4bad4ef771e25274a, type: 2}
+    weight: 2
   offerCount: 3

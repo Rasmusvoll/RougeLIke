@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f5f05f4f94b4f6eae4a34075b084976, type: 3}
+  m_Name: Brawler
+  m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Robots.ChassisDefinition
+  id: robot_chassis_brawler
+  displayName: Brawler
+  icon: {fileID: 21300000, guid: dd46ab6f3e8a06a4ba89ea9726bc5d1b, type: 3}
+  rarity: 0
+  prefab: {fileID: 0}
+  baseStats:
+  - stat: 0
+    value: 100
+  - stat: 2
+    value: 0
+  slots:
+  - slotId: front
+    type: 0
+    localPosition: {x: 0, y: -0.09, z: 0.5}
+    mirror: 0
+  - slotId: top
+    type: 3
+    localPosition: {x: 0, y: 0.15, z: 0}
+    mirror: 0
+  - slotId: rear
+    type: 4
+    localPosition: {x: 0, y: 0, z: -0.5}
+    mirror: 0
+  - slotId: side_left
+    type: 1
+    localPosition: {x: -0.4, y: 0, z: 0}
+    mirror: 0
+  - slotId: side_right
+    type: 1
+    localPosition: {x: 0.4, y: 0, z: 0}
+    mirror: 0
+  - slotId: wheel_front_left
+    type: 2
+    localPosition: {x: -0.5, y: -0.045, z: 0.3}
+    mirror: 0
+  - slotId: wheel_front_right
+    type: 2
+    localPosition: {x: 0.5, y: -0.045, z: 0.3}
+    mirror: 0
+  - slotId: wheel_back_left
+    type: 2
+    localPosition: {x: -0.5, y: -0.045, z: -0.3}
+    mirror: 0
+  - slotId: wheel_back_right
+    type: 2
+    localPosition: {x: 0.5, y: -0.045, z: -0.3}
+    mirror: 0
+  energy: 10
+  moveScale: 1
+  builtInLegs: 0
+  builtInStride: 2
+  innateAbilities: []
+  size: {x: 0.8, y: 0.3, z: 1}
+  mass: 12
+  color: {r: 0.43137255, g: 0.5411765, b: 0.2901961, a: 1}

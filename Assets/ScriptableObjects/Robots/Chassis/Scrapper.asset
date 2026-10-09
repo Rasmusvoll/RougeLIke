@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f5f05f4f94b4f6eae4a34075b084976, type: 3}
+  m_Name: Scrapper
+  m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Robots.ChassisDefinition
+  id: robot_chassis_scrapper
+  displayName: Scrapper
+  icon: {fileID: 21300000, guid: 8909ec5ce4db1ac458f92797cdcdcf9f, type: 3}
+  rarity: 0
+  prefab: {fileID: 0}
+  baseStats:
+  - stat: 0
+    value: 70
+  - stat: 2
+    value: 0
+  slots:
+  - slotId: front
+    type: 0
+    localPosition: {x: 0, y: -0.078, z: 0.45}
+    mirror: 0
+  - slotId: top
+    type: 3
+    localPosition: {x: 0, y: 0.13, z: 0}
+    mirror: 0
+  - slotId: rear
+    type: 4
+    localPosition: {x: 0, y: 0, z: -0.45}
+    mirror: 0
+  - slotId: side_left
+    type: 1
+    localPosition: {x: -0.35, y: 0, z: 0}
+    mirror: 0
+  - slotId: side_right
+    type: 1
+    localPosition: {x: 0.35, y: 0, z: 0}
+    mirror: 0
+  - slotId: wheel_front_left
+    type: 2
+    localPosition: {x: -0.45, y: -0.039, z: 0.27}
+    mirror: 0
+  - slotId: wheel_front_right
+    type: 2
+    localPosition: {x: 0.45, y: -0.039, z: 0.27}
+    mirror: 0
+  - slotId: wheel_back_left
+    type: 2
+    localPosition: {x: -0.45, y: -0.039, z: -0.27}
+    mirror: 0
+  - slotId: wheel_back_right
+    type: 2
+    localPosition: {x: 0.45, y: -0.039, z: -0.27}
+    mirror: 0
+  energy: 7
+  moveScale: 1
+  builtInLegs: 0
+  builtInStride: 2
+  innateAbilities: []
+  size: {x: 0.7, y: 0.26, z: 0.9}
+  mass: 8
+  color: {r: 0.76862746, g: 0.41568628, b: 0.18039216, a: 1}

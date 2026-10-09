@@ -85,6 +85,7 @@ namespace RougeLike.Units
         {
             var body = db.GetBody(bp?.bodyId);
             if (body == null) return null;
+            if (body is Robots.ChassisDefinition chassis) return Robots.RobotAssembler.SpawnVisual(bp, chassis, db, parent);
 
             GameObject root;
             if (body.prefab != null)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using RougeLike.UI;
 using RougeLike.Units;
+using RougeLike.Robots;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -318,10 +319,11 @@ namespace RougeLike.Builder
                 NewTag(nameLine, part.displayName, part.id, row);
                 nameLine.Add(L($"×{count}", "count"));
                 var typeLine = Add(text, "hrow");
-                typeLine.Add(L($"{part.kind} part · ", "sub"));
+                typeLine.Add(L(part is RobotPartDefinition rp ? $"{rp.Category} · " : $"{part.kind} part · ", "sub"));
                 StoryUI.RarityLabel(typeLine, part.rarity);
                 StoryUI.StatChips(text, part.modifiers);
-                if (part.IsLocomotion) text.Add(L($"Walks · {Format(part.stride)} speed per leg", "sub"));
+                if (part is RobotPartDefinition { type: RobotPartType.Wheel } wheel) text.Add(L($"Drives · {Format(wheel.stride)} top speed, {Format(wheel.grip)} grip", "sub"));
+                else if (part.IsLocomotion) text.Add(L($"Walks · {Format(part.stride)} speed per leg", "sub"));
                 else if (!UnitAssembler.HasAttackPart(part.tags)) text.Add(L("No attack", "sub"));
 
                 var side = Add(row, "card-side");
@@ -382,7 +384,8 @@ namespace RougeLike.Builder
                 {
                     // Speed comes from legs: say how the unit gets about, or that it can't.
                     line.Add(L(gait.CanMove ? Format(value) : "Can't move", "stat-value"));
-                    col.Add(L(gait.CanMove ? gait.Describe() : "Add legs to walk", "sub", gait.CanMove && !gait.Limps ? "up" : "down"));
+                    var drives = RobotAssembler.DescribeMovement(session.Current, database);
+                    col.Add(L(drives ?? (gait.CanMove ? gait.Describe() : "Add legs to walk"), "sub", gait.CanMove && !gait.Limps ? "up" : "down"));
                     continue;
                 }
                 line.Add(L(Format(value), "stat-value"));
@@ -390,7 +393,7 @@ namespace RougeLike.Builder
                 if (Mathf.Abs(delta) > 0.01f)
                     line.Add(L($"{(delta > 0 ? "+" : "")}{Format(delta)}", "stat-delta", delta > 0 ? "up" : "down"));
                 if (s == StatType.Attack && session.Current != null && !UnitAssembler.HasAttackPart(UnitAssembler.CollectTags(session.Current, database)))
-                    col.Add(L(gait.CanMove ? "Only kicks" : "No attack", "sub", "down"));
+                    col.Add(L(!gait.CanMove ? "No attack" : RobotAssembler.IsRobot(session.Current, database) ? "Only rams" : "Only kicks", "sub", "down"));
             }
         }
 

@@ -13,12 +13,17 @@ MonoBehaviour:
   m_Name: StarterSet
   m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Units.StarterSet
   bodies:
-  - {fileID: 11400000, guid: f542923e513179c4f8ec50c65f4e3779, type: 2}
+  - {fileID: 11400000, guid: 0f241fadfae526f4d8ceaf7dc486e04f, type: 2}
+  - {fileID: 11400000, guid: 773852540d92dbb409813734ff80a499, type: 2}
   parts:
-  - part: {fileID: 11400000, guid: 650ba7a8db5f9b942b0219a2257fa981, type: 2}
-    count: 2
-  - part: {fileID: 11400000, guid: 7c0bd393a3109834490b4bc977cdbf2d, type: 2}
+  - part: {fileID: 11400000, guid: fc77b1cff88d8bc4c9a988c1126b9a61, type: 2}
+    count: 8
+  - part: {fileID: 11400000, guid: 907a4523841f19f4aa2c3e1b8d30c310, type: 2}
     count: 1
-  - part: {fileID: 11400000, guid: f9e0522d2a11649489318fb5cbb7cd4b, type: 2}
-    count: 4
+  - part: {fileID: 11400000, guid: ac9281cf7e6df304b9319902e2765904, type: 2}
+    count: 1
+  - part: {fileID: 11400000, guid: ece6a737b4faf0f44910bf4ca0facb9c, type: 2}
+    count: 1
+  - part: {fileID: 11400000, guid: 783d8e72086ffb24a92e14ac85e00776, type: 2}
+    count: 1
   buffs: []

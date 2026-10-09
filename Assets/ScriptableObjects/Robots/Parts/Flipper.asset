@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1083c02f94e349f39eb0dd8c35639324, type: 3}
+  m_Name: Flipper
+  m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Robots.RobotPartDefinition
+  id: robot_flipper
+  displayName: Flipper
+  icon: {fileID: 21300000, guid: 4a3e6f6cab700fc4dbc72a8a48bac2ca, type: 3}
+  rarity: 1
+  prefab: {fileID: 0}
+  kind: 0
+  stride: 0
+  energyCost: 3
+  modifiers: []
+  abilities: []
+  tags:
+  - melee
+  - flipper
+  type: 2
+  mass: 2
+  color: {r: 0.8784314, g: 0.72156864, b: 0.1882353, a: 1}
+  wheelRadius: 0.2
+  grip: 1.2
+  motor: 40
+  damage: 5
+  force: 7
+  cooldown: 2.5
+  reach: 0.6

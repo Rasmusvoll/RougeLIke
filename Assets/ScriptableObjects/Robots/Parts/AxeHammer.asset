@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1083c02f94e349f39eb0dd8c35639324, type: 3}
+  m_Name: AxeHammer
+  m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Robots.RobotPartDefinition
+  id: robot_hammer
+  displayName: Axe Hammer
+  icon: {fileID: 21300000, guid: 125bf7a7197c4f044a46e47b9c5123a7, type: 3}
+  rarity: 1
+  prefab: {fileID: 0}
+  kind: 3
+  stride: 0
+  energyCost: 3
+  modifiers: []
+  abilities: []
+  tags:
+  - melee
+  - hammer
+  type: 5
+  mass: 2.5
+  color: {r: 0.6392157, g: 0.22745098, b: 0.16470589, a: 1}
+  wheelRadius: 0.2
+  grip: 1.2
+  motor: 40
+  damage: 25
+  force: 2
+  cooldown: 1.6
+  reach: 0.6
