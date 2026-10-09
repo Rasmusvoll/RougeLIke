@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1083c02f94e349f39eb0dd8c35639324, type: 3}
+  m_Name: BarSpinner
+  m_EditorClassIdentifier: Assembly-CSharp::RougeLike.Robots.RobotPartDefinition
+  id: robot_spinner
+  displayName: Bar Spinner
+  icon: {fileID: 21300000, guid: 78a1aaa058a0f8a43bf7de5a34d0df10, type: 3}
+  rarity: 2
+  prefab: {fileID: 0}
+  kind: 0
+  stride: 0
+  energyCost: 4
+  modifiers: []
+  abilities: []
+  tags:
+  - melee
+  - spinner
+  type: 3
+  mass: 3
+  color: {r: 0, g: 0, b: 0, a: 0}
+  wheelRadius: 0.2
+  grip: 1.2
+  motor: 40
+  damage: 30
+  force: 6
+  cooldown: 2
+  reach: 0.6

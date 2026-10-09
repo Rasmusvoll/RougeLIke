@@ -245,9 +245,10 @@ MonoBehaviour:
   database: {fileID: 11400000, guid: 3d4a7155de2050e4c9f521d9eb3d47ac, type: 2}
   starterSet: {fileID: 11400000, guid: 69ff543d61624fc44b490ff98d8379b1, type: 2}
   waves:
-  - {fileID: 11400000, guid: f600e599426342d42974296548546bd3, type: 2}
-  - {fileID: 11400000, guid: 7606247fe6376bc46a157fd1fb8480a3, type: 2}
-  - {fileID: 11400000, guid: 3152f65bd8a9ad048abf62b8d605a673, type: 2}
+  - {fileID: 11400000, guid: 6743af87e2216f74099c0a72ac0b81e4, type: 2}
+  - {fileID: 11400000, guid: d334c9eb7b2c6de4a9ab52726b99e977, type: 2}
+  - {fileID: 11400000, guid: ecc7570863f6e564ca60a07281740f6a, type: 2}
+  - {fileID: 11400000, guid: 84bc20aad604cb240bf22070cf324be6, type: 2}
   builderScene: Builder
   rewardTable: {fileID: 11400000, guid: cfe566c66d4c1664b95ec44be9b70199, type: 2}
   boulderMesh: {fileID: 4300000, guid: b92eb3e5a6a96754e9046925d6a5c382, type: 2}
