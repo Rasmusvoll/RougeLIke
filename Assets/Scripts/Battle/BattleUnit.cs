@@ -41,6 +41,12 @@ namespace RougeLike.Battle
         const float BellyDrag = 4f;           // ground drag on an end no legs hold up, per second
 
         const float WaterDrag = 2.5f;         // extra damping while wading, per second
+
+        // Counterweight: attacks throw the attacker's own body around, more so for heavy weapons on light bodies.
+        const float WindupPull = 7f, WindupLift = 5f; // hauling the weapon back, m/s² at full wind-up
+        const float ThrowYank = 2.4f;         // follow-through after a throw, m/s at the throwing arm
+        const float SpitKick = 1.6f;          // recoil of a spit, m/s at the mouth
+
         static PhysicsMaterial slippery, grippy;
 
         public UnitInstance Unit { get; private set; }
@@ -91,6 +97,8 @@ namespace RougeLike.Battle
         Vector3 sagDirLocal, bellyLocal;
         float support = 1f;
         bool closingIn;
+        // How hard the unit's attacks throw its own body about: attack-part weight (energy) against body mass.
+        float heft = 1f, windup;
 
         BattleUnit target;
         float attackTimer, retargetTimer;
@@ -245,6 +253,9 @@ namespace RougeLike.Battle
             var lead = attackers[0];
             foreach (var m in attackers) if (AttackOf(m.part) > AttackOf(lead.part)) lead = m;
             attackers.RemoveAll(m => Vector3.Dot(m.reach, lead.reach) < 0.5f);
+            int weight = 0;
+            foreach (var m in attackers) weight += m.part.energyCost;
+            heft = Mathf.Clamp(weight / (2f * body.mass), 0.3f, 2.5f);
             var point = Vector3.zero;
             var dir = Vector3.zero;
             foreach (var m in attackers)
@@ -331,14 +342,17 @@ namespace RougeLike.Battle
                 target = battle.NearestEnemy(this);
                 retargetTimer = RetargetInterval;
             }
+            windup = 0f;
             if (target == null || Toppled || harmless) return;
 
             // Attacks come from the attack part, so it has to be in reach and pointing at the target.
             float gap = AttackGap(target);
             bool facing = Vector3.Dot(AttackDir, Flat(target.transform.position - AttackPoint).normalized) > 0.6f;
+            windup = 0f;
             if (gap <= Reach && facing)
             {
                 attackTimer -= dt;
+                if (balance > 0.15f) windup = Mathf.Clamp01(1f - attackTimer / UnitAnimator.WindupTime(AttackKind));
                 if (attackTimer <= 0f && balance > 0.15f)
                 {
                     Attack(target);
@@ -364,20 +378,34 @@ namespace RougeLike.Battle
             if (anim != null) anim.Strike(AttackKind);
             if (IsThrower)
             {
+                // Follow-through: the rock's weight yanks the thrower forward and over, high up, so it
+                // pitches after the throw and may stumble.
+                var origin = ThrowOrigin;
                 Boulder.Throw(this, t, Unit.Stats.Get(StatType.Attack), battle.BoulderMesh, battle.BoulderMaterial);
-                body.AddForceAtPosition(-AttackDir * 1.5f + Vector3.up * 0.5f, AttackPoint, ForceMode.VelocityChange); // heave
+                var throwDir = Flat(t.transform.position - transform.position).normalized;
+                body.AddForceAtPosition((throwDir * ThrowYank + Vector3.down) * heft, origin, ForceMode.VelocityChange);
+                Tip(throwDir, 6f * heft);
+                balance = Mathf.Max(0f, balance - 0.5f * heft);
                 return;
             }
             if (IsRanged)
             {
+                // Recoil: the mouth kicks back and up, rearing the body away from the shot.
                 Projectile.Fire(this, t, Unit.Stats.Get(StatType.Attack), BattleVisuals.Palette.Acid);
-                body.AddForceAtPosition(-AttackDir * 1.2f, AttackPoint, ForceMode.VelocityChange); // recoil
+                body.AddForceAtPosition(-AttackDir * (1f + SpitKick * heft) + Vector3.up * 0.5f * heft, MuzzlePosition, ForceMode.VelocityChange);
+                Tip(-AttackDir, 4f * heft);
+                balance = Mathf.Max(0f, balance - 0.3f * heft);
                 return;
             }
             // Fling the attack part at the target, dragging the body after it (an off-centre part
             // twists the body into the blow); it lands a moment later if the target is still in reach.
             var dir = Flat(t.transform.position - AttackPoint).normalized;
-            body.AddForceAtPosition(dir * LungeSpeed + Vector3.up * 0.8f, AttackPoint, ForceMode.VelocityChange);
+            body.AddForceAtPosition(dir * LungeSpeed * (0.7f + 0.5f * heft) + Vector3.up * 0.8f, AttackPoint, ForceMode.VelocityChange);
+            // Throwing the weight of the swing: the body twists round behind the striking part and pitches into it.
+            float twist = Vector3.Cross(Flat(AttackPoint - CenterPosition), dir).y;
+            body.AddTorque(Vector3.up * twist * 5f * heft, ForceMode.VelocityChange);
+            Tip(dir, 3f * heft);
+            balance = Mathf.Max(0f, balance - 0.25f * heft);
             pendingHit = t;
             pendingHitTime = Time.time + HitDelay;
         }
@@ -388,12 +416,29 @@ namespace RougeLike.Battle
             pendingHit = null;
             if (!IsAlive || t == null || !t.IsAlive) return;
             var to = Flat(t.transform.position - AttackPoint);
-            if (AttackGap(t) > Reach + 0.5f) return; // whiffed
+            if (AttackGap(t) > Reach + 0.5f)
+            {
+                // Whiffed: nothing stops the swing, so the body overshoots and stumbles after it.
+                body.AddForceAtPosition(to.normalized * 1.5f * heft, AttackPoint, ForceMode.VelocityChange);
+                Tip(to.normalized, 5f * heft);
+                balance = Mathf.Max(0f, balance - 0.45f * heft);
+                return;
+            }
             float damage = Unit.Stats.Get(StatType.Attack) * (kicks ? KickDamage : 1f);
             float knock = Mathf.Min(MaxKnock, (MeleeKnock + damage * MeleeKnockPerDamage) * Mass / t.Mass);
             if (kicks) knock *= KickKnock;
             var point = Vector3.Lerp(t.CenterPosition, AttackPoint, 0.5f);
             t.Hit(damage, to.normalized, knock, point);
+            // The blow pushes back too: a heavy target bounces the attacker off it.
+            body.AddForceAtPosition(-to.normalized * Mathf.Min(2.5f, knock * 0.35f * t.Mass / Mass), AttackPoint, ForceMode.VelocityChange);
+            Tip(-to.normalized, Mathf.Min(3f, knock * 0.5f * t.Mass / Mass));
+        }
+
+        /// <summary>Rocks the body over toward a flat direction, as a spin in rad/s; balance pulls it back up.</summary>
+        void Tip(Vector3 toward, float spin)
+        {
+            if (body.isKinematic) return;
+            body.AddTorque(Vector3.Cross(Vector3.up, Flat(toward).normalized) * spin, ForceMode.VelocityChange);
         }
 
         /// <summary>
@@ -527,6 +572,14 @@ namespace RougeLike.Battle
             if (Time.time < toppledUntil || gettingUp || target == null || !target.IsAlive || battle.Phase != BattlePhase.Fighting)
                 return;
 
+            // Winding up hauls the weapon back (and up, for a throw): pulled from the attack part, it
+            // rocks the body back and twists it away from the coming swing.
+            if (windup > 0f)
+            {
+                var pull = -AttackDir * WindupPull + (IsThrower ? Vector3.up * WindupLift : Vector3.zero);
+                body.AddForceAtPosition(pull * heft * windup * body.mass, IsThrower ? ThrowOrigin : AttackPoint, ForceMode.Force);
+            }
+
             // Which way to face: on the way the body's front leads, but up close (or rooted to the spot)
             // it hauls itself round until its attack part points at the target.
             var to = Flat(target.transform.position - transform.position);
@@ -540,6 +593,20 @@ namespace RougeLike.Battle
             float yawAccel = (yawErr * TurnStrength - w.y * TurnDamping) * strength;
 
             var vel = Flat(body.linearVelocity);
+            var arena = battle.Arena;
+            float wade = arena != null ? arena.WadeDepth(transform.position) : 0f;
+            if (wade > 0f)
+            {
+                body.AddForce(-vel * WaterDrag, ForceMode.Acceleration);
+                splashTimer -= dt;
+                if (splashTimer <= 0f && vel.sqrMagnitude > 0.5f)
+                {
+                    splashTimer = 0.35f;
+                    var s = arena.WaterAt(transform.position.x, transform.position.z);
+                    BattleEffects.Spark(new Vector3(transform.position.x, s.waterLevel, transform.position.z),
+                                        0.35f + Radius * 0.4f, Color.Lerp(s.waterColor, Color.white, 0.5f));
+                }
+            }
             if (!gait.CanMove)
             {
                 // No legs: stays put, only sliding as far as hits shove it, and shuffles round slowly.
@@ -554,6 +621,8 @@ namespace RougeLike.Battle
             if (!close) desired = Flat(Waypoint(arena) - transform.position).normalized * speed;
             else if (AttackGap(target) > Reach) desired = Flat(target.transform.position - AttackPoint).normalized * speed * 0.4f;
             else desired = Vector3.zero;
+            desired = SteerAroundObstacles(desired);
+            if (arena != null) desired = arena.SteerAroundHoles(transform.position, desired, Radius);
 
             bool busy = desired != Vector3.zero || Mathf.Abs(yawErr) > 0.15f;
             if (busy) walkPhase += dt * (5f + speed);
@@ -576,20 +645,6 @@ namespace RougeLike.Battle
         /// tail swings the body round its front, and lopsided legs pull the walk into a curve.
         /// </summary>
         void PushWithFeet(Vector3 accel, float yawAccel, bool stepping)
-            var arena = battle.Arena;
-            float wade = arena != null ? arena.WadeDepth(transform.position) : 0f;
-            if (wade > 0f)
-            {
-                body.AddForce(-vel * WaterDrag, ForceMode.Acceleration);
-                splashTimer -= dt;
-                if (splashTimer <= 0f && vel.sqrMagnitude > 0.5f)
-                {
-                    splashTimer = 0.35f;
-                    var s = arena.WaterAt(transform.position.x, transform.position.z);
-                    BattleEffects.Spark(new Vector3(transform.position.x, s.waterLevel, transform.position.z),
-                                        0.35f + Radius * 0.4f, Color.Lerp(s.waterColor, Color.white, 0.5f));
-                }
-            }
         {
             if (feet.Count == 0) return;
             var com = body.worldCenterOfMass;
@@ -604,8 +659,6 @@ namespace RougeLike.Battle
             if (n == 0) return;
 
             body.AddTorque(Vector3.up * yawAccel * (1f - FootTurnShare), ForceMode.Acceleration);
-            desired = SteerAroundObstacles(desired);
-            if (arena != null) desired = arena.SteerAroundHoles(transform.position, desired, Radius);
             // Feet at r_i pushing along up × r_i with strength k give a torque of k·Σ|r_i|² about up.
             float iy = Mathf.Max(0.01f, body.inertiaTensor.y);
             float k = sumR2 > 0.02f ? yawAccel * FootTurnShare * iy / (body.mass * sumR2) : 0f;
