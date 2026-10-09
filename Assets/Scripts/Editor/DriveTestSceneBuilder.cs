@@ -10,7 +10,8 @@ namespace RougeLike.EditorTools
 {
     /// <summary>
     /// Writes Assets/Scenes/DriveTest.unity: the battle camera and lights, plus a DriveTest with every
-    /// arena in rotation. RougeLike > Open Drive Test builds it (or rebuilds it) and opens it.
+    /// arena in rotation. RougeLike > Open Drive Test builds it (or rebuilds it) and opens it; press Play
+    /// to watch two teams of robots fight on their own.
     /// </summary>
     public static class DriveTestSceneBuilder
     {
@@ -51,7 +52,7 @@ namespace RougeLike.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.SaveScene(scene, ScenePath);
-            Debug.Log($"Drive test scene written to {ScenePath} with {arenas.Count} arenas. Press Play to drive.");
+            Debug.Log($"Drive test scene written to {ScenePath} with {arenas.Count} arenas. Press Play to watch the robots fight.");
         }
 
         static void Light(string name, Quaternion rotation, Color color, float intensity, LightShadows shadows)

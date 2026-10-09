@@ -5,33 +5,44 @@ using UnityEngine;
 namespace RougeLike.Robots
 {
     /// <summary>
-    /// Phase 1 test bed for how wheeled robots feel: drive one robot with the keyboard on a real arena
-    /// with its walls removed, shove a few dummy robots about, push them off the edge or into pits.
-    /// Sliders on screen tune the drive live. Build the scene with RougeLike > Open Drive Test.
+    /// Phase 1 test bed for how wheeled robots feel: two teams of robots drive and fight on their own
+    /// on a real arena with its walls removed, shoving each other off the edge and into pits. Sliders
+    /// on screen tune the drive live. Build the scene with RougeLike > Open Drive Test.
     /// </summary>
     public class DriveTest : MonoBehaviour
     {
         [SerializeField] List<ArenaDefinition> arenas = new();
         [SerializeField] Vector2 boardHalfSize = new(9.2f, 6.6f);
-        [SerializeField] int dummyCount = 3;
+        [SerializeField] int teamSize = 4;
         [Tooltip("Below this height a robot has fallen off the arena.")]
         [SerializeField] float fallHeight = -4f;
+        [Tooltip("A robot stuck on its back this long is out.")]
+        [SerializeField] float stuckOutTime = 4f;
 
-        static readonly Color PlayerColor = BattleVisuals.Palette.MarquiseOrange;
-        static readonly Color DummyColor = BattleVisuals.Palette.EyrieBlue;
+        static readonly Color[] TeamColors = { BattleVisuals.Palette.MarquiseOrange, BattleVisuals.Palette.EyrieBlue };
+        static readonly string[] TeamNames = { "Orange", "Blue" };
+
+        class Bot
+        {
+            public RobotDrive drive;
+            public RobotBrain brain;
+            public int team;
+            public bool isOut;
+            public float stuckTime;
+        }
 
         Transform field, robotRoot;
         Arena arena;
         int arenaIndex;
-        RobotDrive player;
-        readonly List<RobotDrive> dummies = new();
-        readonly Dictionary<RobotDrive, float> fallen = new();
-        bool dummiesChase, chaseCam, showTuning = true;
+        readonly List<Bot> bots = new();
+        readonly List<RobotBrain> brains = new();
+        bool followCam, showTuning = true, slowMo;
         Camera cam;
         Vector3 camHome;
         Quaternion camHomeRot;
-        string lastEvent = "";
-        float lastEventTime = -10f;
+        string banner = "";
+        float bannerTime = -10f, roundOverAt = -1f;
+        int[] wins = new int[2];
 
         // Live tuning, applied to every robot each frame.
         float power = 14f, maxSpeed = 6f, turnRate = 200f, grip = 1.2f, springHz = 3f, damping = 0.45f, mass = 10f;
@@ -51,11 +62,11 @@ namespace RougeLike.Robots
 
         void LoadArena(int index)
         {
-            if (field != null) Destroy(field.gameObject);
-            foreach (Transform t in robotRoot) Destroy(t.gameObject);
-            dummies.Clear();
-            fallen.Clear();
-
+            if (field != null)
+            {
+                field.gameObject.SetActive(false); // gone now, not at the end of the frame
+                Destroy(field.gameObject);
+            }
             field = new GameObject("Field").transform;
             field.SetParent(transform, false);
             arenaIndex = arenas.Count > 0 ? (index % arenas.Count + arenas.Count) % arenas.Count : 0;
@@ -69,32 +80,46 @@ namespace RougeLike.Robots
                 ground.transform.localScale = new Vector3(boardHalfSize.x * 2f, 0.5f, boardHalfSize.y * 2f);
             }
             // No walls on purpose: the edge of the board is a drop.
+            StartRound();
+        }
 
-            player = TestRobot.Create("Player Robot", PlayerColor, SpawnPoint(0f, -3.5f), 0f, robotRoot);
-            for (int i = 0; i < dummyCount; i++)
+        void StartRound()
+        {
+            foreach (Transform t in robotRoot)
             {
-                float x = dummyCount == 1 ? 0f : Mathf.Lerp(-4.5f, 4.5f, i / (float)(dummyCount - 1));
-                dummies.Add(TestRobot.Create($"Dummy {i + 1}", DummyColor, SpawnPoint(x, 2.5f), 180f, robotRoot));
+                // Off at once, so last round's robots can't collide with the new ones on the same spots.
+                t.gameObject.SetActive(false);
+                Destroy(t.gameObject);
+            }
+            bots.Clear();
+            brains.Clear();
+            roundOverAt = -1f;
+            for (int team = 0; team < 2; team++)
+            for (int i = 0; i < teamSize; i++)
+            {
+                float x = teamSize == 1 ? 0f : Mathf.Lerp(-5f, 5f, i / (float)(teamSize - 1));
+                float z = team == 0 ? -3.6f : 3.6f;
+                var drive = TestRobot.Create($"{TeamNames[team]} {i + 1}", TeamColors[team], SpawnPoint(x, z), team == 0 ? 0f : 180f, robotRoot);
+                var brain = drive.gameObject.AddComponent<RobotBrain>();
+                brain.Team = team;
+                brain.Others = brains;
+                // A little variety so they don't move as one block.
+                brain.lineUpDistance = Random.Range(1.2f, 2.2f);
+                brain.caution = Random.Range(0.25f, 0.45f);
+                brains.Add(brain);
+                bots.Add(new Bot { drive = drive, brain = brain, team = team });
             }
             ApplyTuning();
+            ShowBanner("Fight!");
         }
 
         /// <summary>A spot on the ground near (x, z), nudged off any pit.</summary>
         Vector3 SpawnPoint(float x, float z)
         {
             if (arena != null)
-                for (int tries = 0; tries < 12 && arena.InHole(x, z, 1.4f); tries++) x += 1f;
+                for (int tries = 0; tries < 12 && arena.InHole(x, z, 1.4f); tries++) x += x > 0f ? -1f : 1f;
             float y = arena != null ? arena.HeightAt(x, z) : 0f;
             return new Vector3(x, y + 0.6f, z);
-        }
-
-        void Respawn(RobotDrive r, float x, float z, float yaw)
-        {
-            r.Body.linearVelocity = Vector3.zero;
-            r.Body.angularVelocity = Vector3.zero;
-            r.Body.position = SpawnPoint(x, z);
-            r.Body.rotation = Quaternion.Euler(0f, yaw, 0f);
-            r.transform.SetPositionAndRotation(r.Body.position, r.Body.rotation);
         }
 
         void Update()
@@ -104,51 +129,63 @@ namespace RougeLike.Robots
             if (Input.GetKeyDown(KeyCode.Alpha3)) LoadArena(2);
             if (Input.GetKeyDown(KeyCode.Alpha4)) LoadArena(3);
             if (Input.GetKeyDown(KeyCode.N)) LoadArena(arenaIndex + 1);
-            if (Input.GetKeyDown(KeyCode.R)) Respawn(player, 0f, -3.5f, 0f);
-            if (Input.GetKeyDown(KeyCode.G)) dummiesChase = !dummiesChase;
-            if (Input.GetKeyDown(KeyCode.C)) chaseCam = !chaseCam;
+            if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Space)) StartRound();
+            if (Input.GetKeyDown(KeyCode.Equals) || Input.GetKeyDown(KeyCode.KeypadPlus)) { teamSize = Mathf.Min(10, teamSize + 1); StartRound(); }
+            if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) { teamSize = Mathf.Max(1, teamSize - 1); StartRound(); }
+            if (Input.GetKeyDown(KeyCode.C)) followCam = !followCam;
+            if (Input.GetKeyDown(KeyCode.T)) slowMo = !slowMo;
             if (Input.GetKeyDown(KeyCode.Tab)) showTuning = !showTuning;
-            if (Input.GetKeyDown(KeyCode.F)) Flip(player);
+            Time.timeScale = slowMo ? 0.35f : 1f;
 
-            if (player != null)
-            {
-                player.Throttle = Input.GetAxisRaw("Vertical");
-                player.Steer = Input.GetAxisRaw("Horizontal");
-            }
-            foreach (var d in dummies) DriveDummy(d);
             ApplyTuning();
-            CheckFalls();
+            CheckKnockouts();
+            if (roundOverAt > 0f && Time.time - roundOverAt > 5f) StartRound();
         }
 
-        /// <summary>A taste of the battle AI: dummies line up on the player and ram it.</summary>
-        void DriveDummy(RobotDrive d)
+        void CheckKnockouts()
         {
-            if (!dummiesChase || player == null)
+            foreach (var b in bots)
             {
-                d.Throttle = d.Steer = 0f;
-                return;
+                if (b.isOut || b.drive == null) continue;
+                b.stuckTime = b.drive.Stuck ? b.stuckTime + Time.deltaTime : 0f;
+                string why = b.drive.transform.position.y < fallHeight ? "fell off"
+                           : b.stuckTime > stuckOutTime ? "is stuck on its back"
+                           : null;
+                if (why == null) continue;
+                b.isOut = true;
+                // Taken out of the fight; a fallen one is hidden, a flipped one stays as wreckage.
+                b.brain.enabled = false;
+                b.drive.Throttle = b.drive.Steer = 0f;
+                if (b.drive.transform.position.y < fallHeight) b.drive.gameObject.SetActive(false);
+                ShowBanner($"{b.drive.name} {why}!");
             }
-            var to = player.transform.position - d.transform.position;
-            to.y = 0f;
-            var fwd = Vector3.ProjectOnPlane(d.transform.forward, Vector3.up);
-            float angle = Vector3.SignedAngle(fwd, to, Vector3.up);
-            d.Steer = Mathf.Clamp(angle / 40f, -1f, 1f);
-            d.Throttle = Mathf.Abs(angle) < 70f ? 1f : 0.2f;
+
+            if (roundOverAt > 0f) return;
+            int orange = Alive(0), blue = Alive(1);
+            if (orange > 0 && blue > 0) return;
+            roundOverAt = Time.time;
+            if (orange == 0 && blue == 0) ShowBanner("Draw!");
+            else
+            {
+                int winner = orange > 0 ? 0 : 1;
+                wins[winner]++;
+                ShowBanner($"{TeamNames[winner]} wins!");
+            }
         }
 
-        /// <summary>Test helper: hop and roll the robot, to try flipping and landing.</summary>
-        static void Flip(RobotDrive r)
+        int Alive(int team)
         {
-            if (r == null) return;
-            r.Body.AddForce(Vector3.up * 6f, ForceMode.VelocityChange);
-            r.Body.AddTorque(r.transform.forward * 12f, ForceMode.VelocityChange);
+            int n = 0;
+            foreach (var b in bots) if (b.team == team && !b.isOut) n++;
+            return n;
         }
 
         void ApplyTuning()
         {
-            void Apply(RobotDrive r)
+            foreach (var b in bots)
             {
-                if (r == null) return;
+                var r = b.drive;
+                if (r == null) continue;
                 r.power = power;
                 r.maxSpeed = maxSpeed;
                 r.turnRate = turnRate;
@@ -161,58 +198,34 @@ namespace RougeLike.Robots
                     w.traction = grip * 0.9f;
                 }
             }
-            Apply(player);
-            foreach (var d in dummies) Apply(d);
         }
 
-        void CheckFalls()
+        void ShowBanner(string text)
         {
-            void Check(RobotDrive r, float x, float z, float yaw, string label)
-            {
-                if (r == null) return;
-                if (fallen.TryGetValue(r, out float since))
-                {
-                    if (Time.time - since > 1.5f)
-                    {
-                        fallen.Remove(r);
-                        Respawn(r, x, z, yaw);
-                    }
-                    return;
-                }
-                if (r.transform.position.y < fallHeight)
-                {
-                    fallen[r] = Time.time;
-                    ShowEvent(label + " fell off!");
-                }
-            }
-            Check(player, 0f, -3.5f, 0f, "You");
-            for (int i = 0; i < dummies.Count; i++)
-                Check(dummies[i], Mathf.Lerp(-4.5f, 4.5f, dummies.Count == 1 ? 0.5f : i / (float)(dummies.Count - 1)), 2.5f, 180f, dummies[i].name);
-        }
-
-        void ShowEvent(string text)
-        {
-            lastEvent = text;
-            lastEventTime = Time.time;
+            banner = text;
+            bannerTime = Time.unscaledTime;
         }
 
         void LateUpdate()
         {
             if (cam == null) return;
-            if (chaseCam && player != null)
+            Transform follow = null;
+            if (followCam)
+                foreach (var b in bots)
+                    if (!b.isOut && b.drive != null) { follow = b.drive.transform; break; }
+
+            float k = 1f - Mathf.Exp(-4f * Time.unscaledDeltaTime);
+            if (follow != null)
             {
-                var fwd = Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
-                if (fwd == Vector3.zero) fwd = Vector3.forward;
-                var want = player.transform.position - fwd * 4.5f + Vector3.up * 3f;
-                cam.transform.position = Vector3.Lerp(cam.transform.position, want, 1f - Mathf.Exp(-5f * Time.deltaTime));
+                var want = follow.position + new Vector3(0f, 5f, -4.5f);
+                cam.transform.position = Vector3.Lerp(cam.transform.position, want, k);
                 cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation,
-                    Quaternion.LookRotation(player.transform.position + Vector3.up * 0.3f - cam.transform.position),
-                    1f - Mathf.Exp(-8f * Time.deltaTime));
+                    Quaternion.LookRotation(follow.position - want), k);
             }
             else
             {
-                cam.transform.position = Vector3.Lerp(cam.transform.position, camHome, 1f - Mathf.Exp(-4f * Time.deltaTime));
-                cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, camHomeRot, 1f - Mathf.Exp(-4f * Time.deltaTime));
+                cam.transform.position = Vector3.Lerp(cam.transform.position, camHome, k);
+                cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, camHomeRot, k);
             }
         }
 
@@ -220,20 +233,17 @@ namespace RougeLike.Robots
         {
             var box = new GUIStyle(GUI.skin.box) { alignment = TextAnchor.UpperLeft, fontSize = 14, wordWrap = true };
             string arenaName = arena != null ? arena.Definition.displayName : "Flat test board";
-            string status = player == null ? "" :
-                fallen.ContainsKey(player) ? "Fell off" :
-                player.Stuck ? "Stuck on its back (F to flip, R to reset)" :
-                $"{Mathf.Abs(player.Speed):0.0} m/s, {player.GroundedWheels}/{player.Wheels.Count} wheels down";
-            GUI.Box(new Rect(10, 10, 330, 150),
-                $"DRIVE TEST: {arenaName}\n{status}\n\n" +
-                "WASD / arrows  drive (skid steer)\n" +
-                "R reset   F flip   G dummies ram you: " + (dummiesChase ? "on" : "off") + "\n" +
-                "1-4 / N arena   C chase camera   Tab tuning", box);
+            GUI.Box(new Rect(10, 10, 340, 150),
+                $"ROBOT TEST: {arenaName}\n" +
+                $"Orange {Alive(0)} left vs Blue {Alive(1)} left   (wins {wins[0]} - {wins[1]})\n\n" +
+                "R / Space  new round     + / -  robots per team (" + teamSize + ")\n" +
+                "1-4 / N  arena     C  follow camera     T  slow motion\n" +
+                "Tab  tuning panel", box);
 
-            if (Time.time - lastEventTime < 2f)
+            if (Time.unscaledTime - bannerTime < 2.5f)
             {
-                var big = new GUIStyle(GUI.skin.label) { fontSize = 28, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-                GUI.Label(new Rect(0, 60, Screen.width, 50), lastEvent, big);
+                var big = new GUIStyle(GUI.skin.label) { fontSize = 30, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+                GUI.Label(new Rect(0, 60, Screen.width, 50), banner, big);
             }
 
             if (!showTuning) return;
