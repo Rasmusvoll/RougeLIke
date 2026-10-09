@@ -59,6 +59,14 @@ namespace RougeLike.Units
             return new Gait(legs, speed, lean, StabilityFactor(legs) * limp);
         }
 
+        /// <summary>
+        /// How well feet hold a body up, 0 to 1: more feet hold better, and feet bunched toward one
+        /// end (offset from the body's middle, as a fraction of its half size) leave the other end
+        /// hanging. Used for the belly drag in battle and the droop in the animation.
+        /// </summary>
+        public static float Support(int feet, Vector2 offset) =>
+            feet <= 0 ? 0f : Mathf.Clamp01(0.35f * feet + 0.3f) * (1f - 0.7f * Mathf.Clamp01(offset.magnitude));
+
         /// <summary>One leg hops, two walk, more scuttle a bit faster.</summary>
         static float GaitFactor(int legs) => legs switch { 1 => 0.5f, 2 => 1f, 3 => 1.1f, 4 => 1.2f, _ => 1.25f };
 

@@ -10,10 +10,12 @@ namespace RougeLike.Battle
     /// Hits shove the target and knock its balance out, so big hits make units stagger or fall over.
     /// On death balance is switched off and the parts break away. Stats come from the UnitInstance
     /// that UnitAssembler builds as this object's child.
-    /// How it moves comes from its legs (Gait): with none it sits planted like a turret, only turning
-    /// to face its target and attacking whatever comes in reach; more legs make it steadier, one leg
-    /// makes it hop and wobble, and lopsided legs make it pull to one side so it walks a curve. A unit
-    /// with no attack part only kicks, and only if it has legs.
+    /// How it moves comes from its legs (Gait) and where they are: each foot pushes from where it
+    /// stands, so legs at the tail drag a sagging body along and lopsided legs pull it into a curve.
+    /// With no legs it sits planted like a turret, only turning to face its target and attacking
+    /// whatever comes in reach. Attacks come from the attack part itself: up close the unit hauls
+    /// its body round until that part (a claw on the side, a tail behind) points at the target, then
+    /// flings it. A unit with no attack part only kicks, and only if it has legs.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public class BattleUnit : MonoBehaviour
@@ -34,7 +36,9 @@ namespace RougeLike.Battle
         const float LungeSpeed = 3.5f;
         const float HitDelay = 0.12f;         // lunge travels a moment before the blow lands
         const float KickDamage = 0.35f, KickKnock = 0.6f; // a unit with no attack part kicks, weakly
-        const float LimpPull = 9f;            // sideways turn from lopsided legs, as yaw acceleration
+        const float MaxFootAccel = 30f;       // the most one foot can shove the body, m/s²
+        const float FootTurnShare = 0.65f;    // share of turning done by feet pushing sideways where they stand
+        const float BellyDrag = 4f;           // ground drag on an end no legs hold up, per second
 
         static PhysicsMaterial slippery, grippy;
 
@@ -51,8 +55,22 @@ namespace RougeLike.Battle
         public int BlueprintIndex { get; set; } = -1;
 
         public Vector3 CenterPosition => body.worldCenterOfMass;
-        public Vector3 MuzzlePosition => transform.position + transform.rotation * new Vector3(0f, height * 0.6f, Radius);
-        public Vector3 ThrowOrigin => transform.position + transform.rotation * new Vector3(0f, height + 0.3f, 0.2f);
+        /// <summary>Where the unit's attack comes from: its claw, horn, mouth or tail tip.</summary>
+        public Vector3 AttackPoint => transform.TransformPoint(attackLocal);
+        /// <summary>The flat way the attack part reaches. Up close the unit turns to aim this at its target.</summary>
+        public Vector3 AttackDir => Flat(transform.TransformDirection(attackDirLocal)).normalized;
+        public Vector3 MuzzlePosition => AttackPoint + Vector3.up * 0.1f;
+        /// <summary>How well the legs hold the body up, 0 to 1; the rest drags on the ground.</summary>
+        public float Support => support;
+        public int FootCount => feet.Count;
+        public Vector3 ThrowOrigin
+        {
+            get
+            {
+                var p = AttackPoint;
+                return new Vector3(p.x, transform.position.y + height + 0.3f, p.z); // held up over the throwing arm
+            }
+        }
 
         BattleManager battle;
         Rigidbody body;
@@ -63,6 +81,15 @@ namespace RougeLike.Battle
         float height;
         Gait gait;
         bool kicks, harmless;
+
+        // Where the parts are, in this object's space (see SetUpParts). Feet push from where they
+        // stand, in their own half of the step cycle; the body sags and drags at the end nothing
+        // holds up; the attack comes from the attack part.
+        readonly List<(Vector3 pos, float phase)> feet = new();
+        Vector3 attackLocal, attackDirLocal = Vector3.forward;
+        Vector3 sagDirLocal, bellyLocal;
+        float support = 1f;
+        bool closingIn;
 
         BattleUnit target;
         float attackTimer, retargetTimer;
@@ -127,6 +154,7 @@ namespace RougeLike.Battle
             // A low centre of mass keeps units planted until something really hits them.
             body.centerOfMass = new Vector3(box.center.x, height * 0.4f, box.center.z);
             body.isKinematic = true; // frozen until the fight starts
+            SetUpParts();
 
             // Ring and health bar live outside the body so they stay flat and upright when it tips.
             overlay = new GameObject($"{name} Overlay").transform;
@@ -141,6 +169,111 @@ namespace RougeLike.Battle
             attackTimer = Random.Range(0.1f, 0.5f); // so a line of units doesn't swing in lockstep
             foreach (var ab in unit.Abilities) abilityTimers[ab] = ab.cooldown;
         }
+
+        /// <summary>
+        /// Reads where the parts sit: the feet (walking legs, plus a pair under the body for legs
+        /// built into its model), how well they hold the body up and which end hangs, and where the
+        /// attack comes from and which way it reaches.
+        /// </summary>
+        void SetUpParts()
+        {
+            var mounts = UnitAssembler.Mounts(Unit.Source, battle.Database);
+            Vector3 ToLocal(Vector3 bodyPoint) => transform.InverseTransformPoint(visual.TransformPoint(bodyPoint));
+            Vector3 ToLocalDir(Vector3 bodyDir) => transform.InverseTransformDirection(visual.TransformDirection(bodyDir));
+            var mid = new Vector3(box.center.x, 0f, box.center.z);
+
+            // Feet step in diagonal pairs: left against right, front against back.
+            var legs = mounts.FindAll(m => m.walks);
+            float midZ = 0f;
+            foreach (var m in legs) midZ += ToLocal(m.slot.localPosition).z;
+            if (legs.Count > 0) midZ /= legs.Count;
+            foreach (var m in legs)
+            {
+                var p = ToLocal(m.slot.localPosition);
+                p.y = 0f;
+                float phase = (p.x < mid.x - 0.05f ? Mathf.PI : 0f) + (p.z < midZ - 0.05f ? Mathf.PI : 0f);
+                feet.Add((p, phase));
+            }
+            var bodyDef = battle.Database.GetBody(Unit.Source.bodyId);
+            if (bodyDef != null && bodyDef.builtInLegs > 0)
+            {
+                float side = box.size.x * 0.25f;
+                feet.Add((mid + Vector3.left * side, Mathf.PI));
+                feet.Add((mid + Vector3.right * side, 0f));
+            }
+
+            // Legs bunched at one end hold that end up; the other end sags and drags on the ground.
+            if (feet.Count > 0)
+            {
+                var c = Vector3.zero;
+                foreach (var f in feet) c += f.pos;
+                var offset = c / feet.Count - mid;
+                float hx = Mathf.Max(0.1f, box.size.x * 0.5f), hz = Mathf.Max(0.1f, box.size.z * 0.5f);
+                support = Gait.Support(feet.Count, new Vector2(offset.x / hx, offset.z / hz));
+                if (offset.magnitude > 0.05f)
+                {
+                    sagDirLocal = -offset.normalized;
+                    bellyLocal = mid + new Vector3(sagDirLocal.x * hx, 0.05f, sagDirLocal.z * hz);
+                }
+            }
+
+            // The attack part: whatever does this unit's kind of attack, or the front foot for a kick.
+            var attackers = mounts.FindAll(m =>
+                IsThrower ? m.part.tags.Contains("thrower")
+                : IsRanged ? m.part.tags.Contains("ranged")
+                : m.part.tags.Contains("melee"));
+            if (attackers.Count == 0 && kicks && legs.Count > 0)
+            {
+                var front = legs[0];
+                foreach (var m in legs) if (m.slot.localPosition.z > front.slot.localPosition.z) front = m;
+                attackers.Add(front);
+            }
+            if (attackers.Count == 0)
+            {
+                attackLocal = new Vector3(box.center.x, height * 0.5f, box.center.z + box.size.z * 0.5f);
+                return;
+            }
+            // Parts pointing different ways (a claw in front, a tail behind): lead with the
+            // hardest-hitting one and the parts that reach the same way.
+            var lead = attackers[0];
+            foreach (var m in attackers) if (AttackOf(m.part) > AttackOf(lead.part)) lead = m;
+            attackers.RemoveAll(m => Vector3.Dot(m.reach, lead.reach) < 0.5f);
+            var point = Vector3.zero;
+            var dir = Vector3.zero;
+            foreach (var m in attackers)
+            {
+                // The tip: as far along its reach as the part's model goes (a long tail reaches far).
+                var root = ToLocal(m.slot.localPosition);
+                var reach = ToLocalDir(m.reach);
+                float tip = 0.3f;
+                var model = visual.Find($"{m.slot.slotId}: {m.part.displayName}");
+                if (model != null)
+                    foreach (var r in model.GetComponentsInChildren<Renderer>())
+                    {
+                        var b = r.bounds;
+                        for (int i = 0; i < 8; i++)
+                        {
+                            var corner = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                            tip = Mathf.Max(tip, Vector3.Dot(transform.InverseTransformPoint(corner) - root, reach));
+                        }
+                    }
+                point += root + reach * tip * 0.85f;
+                dir += reach;
+            }
+            attackLocal = point / attackers.Count;
+            dir.y = 0f;
+            attackDirLocal = dir.sqrMagnitude > 0.01f ? dir.normalized : Vector3.forward;
+        }
+
+        static float AttackOf(PartDefinition p)
+        {
+            float a = 0f;
+            foreach (var m in p.modifiers) if (m.stat == StatType.Attack && m.op == ModifierOp.Flat) a += m.value;
+            return a;
+        }
+
+        /// <summary>Distance from the attack part to the target's edge.</summary>
+        float AttackGap(BattleUnit t) => Flat(t.transform.position - AttackPoint).magnitude - t.Radius;
 
         static PhysicsMaterial Slippery => slippery ??= new PhysicsMaterial("Unit")
         {
@@ -186,9 +319,9 @@ namespace RougeLike.Battle
             }
             if (target == null || Toppled || harmless) return;
 
-            var to = Flat(target.transform.position - transform.position);
-            float gap = to.magnitude - Radius - target.Radius;
-            bool facing = Vector3.Dot(Flat(transform.forward).normalized, to.normalized) > 0.6f;
+            // Attacks come from the attack part, so it has to be in reach and pointing at the target.
+            float gap = AttackGap(target);
+            bool facing = Vector3.Dot(AttackDir, Flat(target.transform.position - AttackPoint).normalized) > 0.6f;
             if (gap <= Reach && facing)
             {
                 attackTimer -= dt;
@@ -207,7 +340,7 @@ namespace RougeLike.Battle
             }
         }
 
-        /// <summary>Distance between body edges at which this unit can attack.</summary>
+        /// <summary>Distance from the attack part to the target's edge at which this unit can attack.</summary>
         float Reach => Mathf.Max(0.35f, Unit.Stats.Get(StatType.Range) - 0.6f);
 
         AttackKind AttackKind => IsThrower ? AttackKind.Throw : IsRanged ? AttackKind.Spit : AttackKind.Melee;
@@ -218,18 +351,19 @@ namespace RougeLike.Battle
             if (IsThrower)
             {
                 Boulder.Throw(this, t, Unit.Stats.Get(StatType.Attack), battle.BoulderMesh, battle.BoulderMaterial);
-                body.AddForce(-transform.forward * 1.5f + Vector3.up * 0.5f, ForceMode.VelocityChange); // heave
+                body.AddForceAtPosition(-AttackDir * 1.5f + Vector3.up * 0.5f, AttackPoint, ForceMode.VelocityChange); // heave
                 return;
             }
             if (IsRanged)
             {
                 Projectile.Fire(this, t, Unit.Stats.Get(StatType.Attack), BattleVisuals.Palette.Acid);
-                body.AddForce(-transform.forward * 1.2f, ForceMode.VelocityChange); // recoil
+                body.AddForceAtPosition(-AttackDir * 1.2f, AttackPoint, ForceMode.VelocityChange); // recoil
                 return;
             }
-            // Throw the body forward; the blow lands a moment later if the target is still in reach.
-            var dir = Flat(t.transform.position - transform.position).normalized;
-            body.AddForce(dir * LungeSpeed + Vector3.up * 0.8f, ForceMode.VelocityChange);
+            // Fling the attack part at the target, dragging the body after it (an off-centre part
+            // twists the body into the blow); it lands a moment later if the target is still in reach.
+            var dir = Flat(t.transform.position - AttackPoint).normalized;
+            body.AddForceAtPosition(dir * LungeSpeed + Vector3.up * 0.8f, AttackPoint, ForceMode.VelocityChange);
             pendingHit = t;
             pendingHitTime = Time.time + HitDelay;
         }
@@ -239,12 +373,12 @@ namespace RougeLike.Battle
             var t = pendingHit;
             pendingHit = null;
             if (!IsAlive || t == null || !t.IsAlive) return;
-            var to = Flat(t.transform.position - transform.position);
-            if (to.magnitude - Radius - t.Radius > Reach + 0.5f) return; // whiffed
+            var to = Flat(t.transform.position - AttackPoint);
+            if (AttackGap(t) > Reach + 0.5f) return; // whiffed
             float damage = Unit.Stats.Get(StatType.Attack) * (kicks ? KickDamage : 1f);
             float knock = Mathf.Min(MaxKnock, (MeleeKnock + damage * MeleeKnockPerDamage) * Mass / t.Mass);
             if (kicks) knock *= KickKnock;
-            var point = Vector3.Lerp(t.CenterPosition, MuzzlePosition, 0.5f);
+            var point = Vector3.Lerp(t.CenterPosition, AttackPoint, 0.5f);
             t.Hit(damage, to.normalized, knock, point);
         }
 
@@ -379,34 +513,91 @@ namespace RougeLike.Battle
             if (Time.time < toppledUntil || gettingUp || target == null || !target.IsAlive || battle.Phase != BattlePhase.Fighting)
                 return;
 
-            // Turn toward the target. Without legs it can only shuffle round slowly.
+            // Which way to face: on the way the body's front leads, but up close (or rooted to the spot)
+            // it hauls itself round until its attack part points at the target.
             var to = Flat(target.transform.position - transform.position);
-            float yawErr = Vector3.SignedAngle(Flat(transform.forward), to, Vector3.up) * Mathf.Deg2Rad;
-            float turn = gait.CanMove ? 1f : 0.5f;
-            body.AddTorque(Vector3.up * (yawErr * TurnStrength * turn - w.y * TurnDamping) * strength, ForceMode.Acceleration);
+            float bodyGap = to.magnitude - Radius - target.Radius;
+            // A little slack before giving up on closing in, so a shove mid-turn doesn't flip it back.
+            closingIn = !gait.CanMove || bodyGap <= Reach + (closingIn ? 1.2f : 0.3f);
+            bool close = closingIn;
+            var facing = close ? AttackDir : Flat(transform.forward).normalized;
+            var aimFrom = close ? AttackPoint : transform.position;
+            float yawErr = Vector3.SignedAngle(facing, Flat(target.transform.position - aimFrom), Vector3.up) * Mathf.Deg2Rad;
+            float yawAccel = (yawErr * TurnStrength - w.y * TurnDamping) * strength;
 
             var vel = Flat(body.linearVelocity);
             if (!gait.CanMove)
             {
-                // No legs: stays put, only sliding as far as hits shove it.
+                // No legs: stays put, only sliding as far as hits shove it, and shuffles round slowly.
+                body.AddTorque(Vector3.up * yawAccel * 0.5f, ForceMode.Acceleration);
                 if (Grounded) body.AddForce(-vel * 3f, ForceMode.Acceleration);
                 return;
             }
 
-            // Walk: steer the horizontal velocity toward the target, only with feet on the ground.
-            float gap = to.magnitude - Radius - target.Radius;
-            var desired = gap > Reach ? to.normalized * Unit.Stats.Get(StatType.Speed) : Vector3.zero;
-            if (Grounded) body.AddForce(Vector3.ClampMagnitude((desired - vel) * 6f, MoveAccel) * strength, ForceMode.Acceleration);
+            // Walk toward the target; once close, only shuffle the attack part into reach.
+            float speed = Unit.Stats.Get(StatType.Speed);
+            Vector3 desired;
+            if (!close) desired = to.normalized * speed;
+            else if (AttackGap(target) > Reach) desired = Flat(target.transform.position - AttackPoint).normalized * speed * 0.4f;
+            else desired = Vector3.zero;
+
+            bool busy = desired != Vector3.zero || Mathf.Abs(yawErr) > 0.15f;
+            if (busy) walkPhase += dt * (5f + speed);
+            if (Grounded) PushWithFeet(Vector3.ClampMagnitude((desired - vel) * 6f, MoveAccel) * strength, yawAccel, busy);
+            DragBelly();
 
             if (desired != Vector3.zero)
             {
                 // A TABS-ish waddle: rock side to side while walking. One leg wobbles, a limp lurches.
-                walkPhase += dt * (5f + Unit.Stats.Get(StatType.Speed));
                 float rock = 6f * (gait.Legs == 1 ? 1.8f : 1f) * (1f + Mathf.Abs(gait.Lean));
                 body.AddTorque(transform.forward * Mathf.Sin(walkPhase) * rock * strength, ForceMode.Acceleration);
-                // The stronger side pushes harder, turning the unit away from it: it walks a curve.
-                body.AddTorque(Vector3.up * -gait.Lean * LimpPull * (0.6f + 0.4f * Mathf.Sin(walkPhase)) * strength, ForceMode.Acceleration);
             }
+        }
+
+        /// <summary>
+        /// Moves and turns the body by pushing from each foot where it stands, so a body is dragged
+        /// along by its legs rather than gliding. Only feet in their half of the step cycle push,
+        /// so one leg lurches and many legs scuttle smoothly. Part of the turning comes from the feet
+        /// shuffling on the spot; the rest from pushing sideways where they stand, so a leg at the
+        /// tail swings the body round its front, and lopsided legs pull the walk into a curve.
+        /// </summary>
+        void PushWithFeet(Vector3 accel, float yawAccel, bool stepping)
+        {
+            if (feet.Count == 0) return;
+            var com = body.worldCenterOfMass;
+            int n = 0;
+            float sumR2 = 0f;
+            for (int i = 0; i < feet.Count; i++)
+            {
+                if (stepping && Mathf.Sin(walkPhase + feet[i].phase) < -0.3f) continue; // foot in the air
+                n++;
+                sumR2 += Flat(transform.TransformPoint(feet[i].pos) - com).sqrMagnitude;
+            }
+            if (n == 0) return;
+
+            body.AddTorque(Vector3.up * yawAccel * (1f - FootTurnShare), ForceMode.Acceleration);
+            // Feet at r_i pushing along up × r_i with strength k give a torque of k·Σ|r_i|² about up.
+            float iy = Mathf.Max(0.01f, body.inertiaTensor.y);
+            float k = sumR2 > 0.02f ? yawAccel * FootTurnShare * iy / (body.mass * sumR2) : 0f;
+            if (sumR2 <= 0.02f) body.AddTorque(Vector3.up * yawAccel * FootTurnShare, ForceMode.Acceleration);
+            for (int i = 0; i < feet.Count; i++)
+            {
+                if (stepping && Mathf.Sin(walkPhase + feet[i].phase) < -0.3f) continue;
+                var p = transform.TransformPoint(feet[i].pos);
+                p.y = com.y; // push level with the centre of mass so feet don't flip the body over
+                var r = Flat(p - com);
+                var a = Vector3.ClampMagnitude(accel / n + Vector3.Cross(Vector3.up, r) * k, MaxFootAccel);
+                body.AddForceAtPosition(a * body.mass, p, ForceMode.Force);
+            }
+        }
+
+        /// <summary>The end no legs hold up scrapes along the ground, so the legs have to drag it.</summary>
+        void DragBelly()
+        {
+            if (!Grounded || support >= 0.95f || sagDirLocal == Vector3.zero) return;
+            var p = transform.TransformPoint(bellyLocal);
+            var v = Flat(body.GetPointVelocity(p));
+            body.AddForceAtPosition(-v * BellyDrag * (1f - support) * body.mass, p, ForceMode.Force);
         }
 
         void EndTopple()

@@ -183,6 +183,52 @@ namespace RougeLike.Units
             return Quaternion.FromToRotation(from, to);
         }
 
+        /// <summary>One part on its slot, as the battle sees it: where it is and which way it reaches.</summary>
+        public struct Mount
+        {
+            public PartDefinition part;
+            public SlotDefinition slot;
+            /// <summary>A leg that reaches the ground and pushes.</summary>
+            public bool walks;
+            /// <summary>Flat direction the part strikes, spits or throws toward, in the body's space.</summary>
+            public Vector3 reach;
+        }
+
+        public static List<Mount> Mounts(UnitBlueprint bp, ContentDatabase db)
+        {
+            var list = new List<Mount>();
+            var body = db.GetBody(bp?.bodyId);
+            if (body == null) return list;
+            foreach (var a in bp.parts)
+            {
+                var part = db.GetPart(a.partId);
+                var slot = body.GetSlot(a.slotId);
+                if (part == null || slot == null) continue;
+                list.Add(new Mount { part = part, slot = slot, walks = part.IsLocomotion && Gait.Reaches(slot), reach = ReachDirection(part.kind, slot) });
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Which way a part on a slot attacks, flat in the body's space. Arms and heads reach forward
+        /// as modelled and tails whip backward, then the part's mount turns and mirrors that, so a
+        /// tail on the tail slot hits behind the unit and a claw on the side reaches out sideways-forward.
+        /// </summary>
+        public static Vector3 ReachDirection(SlotType kind, SlotDefinition slot)
+        {
+            var natural = kind switch
+            {
+                SlotType.Arm => new Vector3(0.45f, 0f, 1f),
+                SlotType.Tail => Vector3.back,
+                _ => Vector3.forward,
+            };
+            // A mirrored part is the right-hand part's rotation, reflected: R v with X flipped.
+            var d = MountRotation(kind, slot) * natural;
+            if (slot.Mirrored) d.x = -d.x;
+            d.y = 0f;
+            return d.sqrMagnitude > 0.01f ? d.normalized : Vector3.forward;
+        }
+
         /// <summary>The way a part of this kind points out of the body in its model, right-hand side.</summary>
         static Vector3 Axis(SlotType kind) => kind switch
         {

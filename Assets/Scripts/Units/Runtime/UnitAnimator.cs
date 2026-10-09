@@ -55,6 +55,12 @@ namespace RougeLike.Units
         float legLength, lean;
         readonly List<Limb> walkers = new();
         Limb kickLeg;
+        Vector3 bodyMid;
+        Vector2 bodyHalf = Vector2.one * 0.5f;
+        // The end the legs don't hold up hangs down, pivoting on the feet.
+        Quaternion droop = Quaternion.identity;
+        Vector3 droopPivot;
+        const float MaxDroop = 10f;
 
         float clock, phase, move, airborne, flail;
         float speed, signedDir = 1f;
@@ -100,6 +106,9 @@ namespace RougeLike.Units
             var b = renderers[0].bounds;
             foreach (var r in renderers) b.Encapsulate(r.bounds);
             size = Mathf.Clamp(b.size.y / Mathf.Max(0.01f, transform.lossyScale.y), 0.4f, 2.5f);
+            bodyMid = transform.InverseTransformPoint(b.center);
+            var e = transform.InverseTransformVector(b.extents);
+            bodyHalf = new Vector2(Mathf.Max(0.1f, Mathf.Abs(e.x)), Mathf.Max(0.1f, Mathf.Abs(e.z)));
         }
 
         /// <summary>
@@ -151,12 +160,26 @@ namespace RougeLike.Units
             foreach (var l in limbs) if (l.walks) walkers.Add(l);
             hasLegs = walkers.Count > 0;
             kickLeg = null;
+            droop = Quaternion.identity;
             if (!hasLegs) { legLength = size * 0.3f; lean = 0f; return; }
 
             float total = 0f, midZ = 0f, sideSum = 0f;
-            foreach (var l in walkers) { total += l.hipHeight; midZ += l.attach.z; }
+            var feetMid = Vector3.zero;
+            foreach (var l in walkers) { total += l.hipHeight; midZ += l.attach.z; feetMid += l.attach; }
             legLength = total / walkers.Count;
             midZ /= walkers.Count;
+            feetMid /= walkers.Count;
+
+            // Legs bunched at one end: the other end droops (nose down for legs at the tail, one
+            // side down for legs all on the other side).
+            var off = new Vector2((feetMid.x - bodyMid.x) / bodyHalf.x, (feetMid.z - bodyMid.z) / bodyHalf.y);
+            float sag = MaxDroop * (1f - Gait.Support(walkers.Count, off));
+            if (off.magnitude > 0.1f)
+            {
+                var d = off.normalized;
+                droop = Quaternion.Euler(-d.y * sag, 0f, d.x * sag);
+                droopPivot = new Vector3(feetMid.x, 0f, feetMid.z);
+            }
             foreach (var l in walkers)
             {
                 float x = l.attach.x;
@@ -447,8 +470,9 @@ namespace RougeLike.Units
             s = Vector3.Scale(s, new Vector3(1f / sq, sq, 1f / sq));
             e.x -= 8f * flinch;
 
+            p += droopPivot - droop * droopPivot; // droop turns about the feet, not the middle
             transform.localPosition = restPos + restRot * p;
-            transform.localRotation = restRot * Quaternion.Euler(e);
+            transform.localRotation = restRot * droop * Quaternion.Euler(e);
             transform.localScale = Vector3.Scale(restScale, s);
         }
 
