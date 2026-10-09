@@ -138,13 +138,20 @@ namespace RougeLike.EditorTools
                     (Bot("Tosser", brawler, smallWheel, ("front", flipper)), new Vector2(2.5f, 3f))),
                 Wave("RobotWave03_Spinners", "Spinners",
                     (Bot("Whirlwind", brawler, smallWheel, ("front", spinner), ("side_left", armor), ("side_right", armor)), new Vector2(-2f, 3f)),
-                    (Bot("Grinder", scrapper, smallWheel, ("front", drum)), new Vector2(2f, 3f)),
+                    (Bot("Grinder", brawler, smallWheel, ("front", drum)), new Vector2(2f, 3f)),
                     (Bot("Torch", scrapper, smallWheel, ("front", flame)), new Vector2(0f, 4f))),
                 Wave("RobotWave04_Juggernaut", "The Juggernaut",
-                    (Bot("Juggernaut", juggernaut, bigWheel, ("front", drum), ("top", hammer), ("side_left", armor), ("side_right", armor), ("rear", srimech)), new Vector2(0f, 3.5f)),
+                    // 13 energy: the drum, hammer and self-righter fit on go-kart wheels, without armour.
+                    (Bot("Juggernaut", juggernaut, smallWheel, ("front", drum), ("top", hammer), ("rear", srimech)), new Vector2(0f, 3.5f)),
                     (Bot("Rust Bucket", scrapper, smallWheel, ("front", wedge)), new Vector2(-3f, 3f)),
                     (Bot("Rust Bucket", scrapper, smallWheel, ("front", wedge)), new Vector2(3f, 3f))),
             };
+            // An enemy over its chassis's energy doesn't spawn at all, so catch it here.
+            foreach (var w in waves)
+                foreach (var e in w.units)
+                    if (!UnitAssembler.Validate(e.blueprint, db, out var error))
+                        Debug.LogError($"Wave '{w.displayName}': enemy '{e.blueprint.name}' won't spawn. {error}");
+
             var root = PrefabUtility.LoadPrefabContents(BattlePrefab);
             try
             {

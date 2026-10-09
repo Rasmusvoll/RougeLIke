@@ -35,7 +35,7 @@ MonoBehaviour:
     position: {x: -2, y: 3}
   - blueprint:
       name: Grinder
-      bodyId: robot_chassis_scrapper
+      bodyId: robot_chassis_brawler
       parts:
       - slotId: wheel_front_left
         partId: robot_wheel_small

@@ -19,21 +19,17 @@ MonoBehaviour:
       bodyId: robot_chassis_juggernaut
       parts:
       - slotId: wheel_front_left
-        partId: robot_wheel_big
+        partId: robot_wheel_small
       - slotId: wheel_front_right
-        partId: robot_wheel_big
+        partId: robot_wheel_small
       - slotId: wheel_back_left
-        partId: robot_wheel_big
+        partId: robot_wheel_small
       - slotId: wheel_back_right
-        partId: robot_wheel_big
+        partId: robot_wheel_small
       - slotId: front
         partId: robot_drum
       - slotId: top
         partId: robot_hammer
-      - slotId: side_left
-        partId: robot_armour
-      - slotId: side_right
-        partId: robot_armour
       - slotId: rear
         partId: robot_srimech
     position: {x: 0, y: 3.5}

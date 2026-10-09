@@ -249,8 +249,12 @@ namespace RougeLike.Battle
                 case PartDefinition part:
                     StoryUI.Pips(info, part.energyCost, part.energyCost);
                     StoryUI.StatChips(info, part.modifiers);
-                    info.Add(L(part.IsLocomotion ? $"Walks · {StoryUI.Format(part.stride)} speed per leg"
-                        : UnitAssembler.HasAttackPart(part.tags) ? $"{part.kind} part" : $"{part.kind} part · no attack", "sub"));
+                    // Robot parts go by what they are (wheel, weapon, armour), not the creature slot kind.
+                    string what = part is Robots.RobotPartDefinition rp ? rp.Category : $"{part.kind} part";
+                    info.Add(L(part is Robots.RobotPartDefinition { type: Robots.RobotPartType.Wheel } wheel
+                        ? $"Drives · {StoryUI.Format(wheel.stride)} top speed, {StoryUI.Format(wheel.grip)} grip"
+                        : part.IsLocomotion ? $"Walks · {StoryUI.Format(part.stride)} speed per leg"
+                        : UnitAssembler.HasAttackPart(part.tags) ? what : $"{what} · no attack", "sub"));
                     int owned = RunState.Collection.GetPartCount(part.id);
                     if (owned > 0) info.Add(L($"You have {owned}", "hint"));
                     break;
