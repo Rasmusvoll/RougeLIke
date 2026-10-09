@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using RougeLike.Units;
+using RougeLike.Robots;
 using UnityEngine;
 
 namespace RougeLike.Battle
@@ -50,6 +51,10 @@ namespace RougeLike.Battle
         static PhysicsMaterial slippery, grippy;
 
         public UnitInstance Unit { get; private set; }
+        /// <summary>A wheeled robot (its body is a ChassisDefinition): RobotDrive and RobotBrain move it, not legs.</summary>
+        public bool IsRobot { get; private set; }
+        /// <summary>The fight is on and this unit's body is simulated.</summary>
+        public bool Fighting => battle != null && battle.Phase == BattlePhase.Fighting && body != null && !body.isKinematic;
         public Team Team => Unit.Team;
         public bool IsAlive => Unit != null && Unit.IsAlive;
         public bool IsRanged { get; private set; }
@@ -114,6 +119,15 @@ namespace RougeLike.Battle
         BattleUnit pendingHit;
         float pendingHitTime;
 
+        // Robots: ramming hurts above this change of speed (m/s), by this much per m/s more.
+        const float RamThreshold = 1.5f, RamDamage = 6f;
+        // Stuck on its back or side this long (after RobotDrive calls it stuck) and it's counted out.
+        const float CountOut = 4f;
+        RobotDrive drive;
+        RobotBrain brain;
+        float stuckFor;
+        static PhysicsMaterial hull;
+
         public static BattleUnit Create(UnitBlueprint bp, Team team, IEnumerable<BuffDefinition> buffs,
                                         BattleManager battle, Vector3 position, Color teamColor)
         {
@@ -128,7 +142,8 @@ namespace RougeLike.Battle
             }
             go.AddComponent<Rigidbody>();
             var bu = go.AddComponent<BattleUnit>();
-            bu.Init(unit, battle, teamColor);
+            if (battle.Database.GetBody(bp.bodyId) is ChassisDefinition chassis) bu.InitRobot(unit, battle, teamColor, chassis);
+            else bu.Init(unit, battle, teamColor);
             return bu;
         }
 
@@ -169,7 +184,66 @@ namespace RougeLike.Battle
             body.centerOfMass = new Vector3(box.center.x, height * 0.4f, box.center.z);
             body.isKinematic = true; // frozen until the fight starts
             SetUpParts();
+            CreateOverlay(teamColor);
 
+            attackTimer = Random.Range(0.1f, 0.5f); // so a line of units doesn't swing in lockstep
+            foreach (var ab in unit.Abilities) abilityTimers[ab] = ab.cooldown;
+        }
+
+        /// <summary>
+        /// Sets up a wheeled robot: a box collider for the hull, weight from its parts, wheels driven
+        /// by a RobotDrive whose power comes from the wheel motors, a RobotBrain to steer (switched on
+        /// when the fight starts) and its weapons armed.
+        /// </summary>
+        void InitRobot(UnitInstance unit, BattleManager b, Color teamColor, ChassisDefinition chassis)
+        {
+            IsRobot = true;
+            Unit = unit;
+            battle = b;
+            visual = unit.transform;
+            gait = unit.Gait;
+
+            var hullT = visual.Find("Chassis");
+            box = gameObject.AddComponent<BoxCollider>();
+            box.center = transform.InverseTransformPoint(hullT != null ? hullT.position : visual.position);
+            box.size = chassis.size;
+            box.material = Hull;
+            height = box.center.y + chassis.size.y * 0.5f;
+            Radius = Mathf.Clamp(Mathf.Max(chassis.size.x, chassis.size.z) * 0.6f, 0.3f, 1.5f);
+
+            body = GetComponent<Rigidbody>();
+            body.mass = Mathf.Max(1f, RobotAssembler.Mass(unit.Source, b.Database));
+            body.linearDamping = 0.05f;
+            body.angularDamping = 0.5f;
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            body.centerOfMass = box.center + Vector3.down * chassis.size.y * 0.3f;
+            body.isKinematic = true; // frozen until the fight starts
+
+            foreach (var w in GetComponentsInChildren<RobotWeapon>()) w.Arm(this);
+            drive = gameObject.AddComponent<RobotDrive>();
+            float motor = 0f;
+            foreach (var a in unit.Source.parts)
+                if (b.Database.GetPart(a.partId) is RobotPartDefinition p && p.type == RobotPartType.Wheel) motor += p.motor;
+            drive.power = motor / body.mass;
+            drive.maxSpeed = Mathf.Max(1f, unit.Stats.Get(StatType.Speed));
+            brain = gameObject.AddComponent<RobotBrain>();
+            brain.lineUpDistance = Random.Range(1.2f, 2f);
+            brain.enabled = false;
+
+            CreateOverlay(teamColor);
+            foreach (var ab in unit.Abilities) abilityTimers[ab] = ab.cooldown;
+        }
+
+        /// <summary>Hulls slide a little when shoved but don't skate.</summary>
+        static PhysicsMaterial Hull => hull ??= new PhysicsMaterial("Robot Hull")
+        {
+            dynamicFriction = 0.35f, staticFriction = 0.45f, frictionCombine = PhysicsMaterialCombine.Average,
+            bounciness = 0.1f,
+        };
+
+        void CreateOverlay(Color teamColor)
+        {
             // Ring and health bar live outside the body so they stay flat and upright when it tips.
             overlay = new GameObject($"{name} Overlay").transform;
             overlay.SetParent(battle.UnitRoot, false);
@@ -180,9 +254,6 @@ namespace RougeLike.Battle
             ringGo.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             bar = HealthBar.Create(overlay, height + 0.35f, teamColor);
             bar.Set(1f);
-
-            attackTimer = Random.Range(0.1f, 0.5f); // so a line of units doesn't swing in lockstep
-            foreach (var ab in unit.Abilities) abilityTimers[ab] = ab.cooldown;
         }
 
         /// <summary>
@@ -313,7 +384,11 @@ namespace RougeLike.Battle
         }
 
         /// <summary>Wakes the body when the battle starts.</summary>
-        public void SetSimulated(bool on) => body.isKinematic = !on;
+        public void SetSimulated(bool on)
+        {
+            body.isKinematic = !on;
+            if (brain != null) brain.enabled = on && IsAlive;
+        }
 
         float Tilt => Vector3.Angle(transform.up, Vector3.up);
         bool Toppled => Time.time < toppledUntil || gettingUp;
@@ -331,6 +406,11 @@ namespace RougeLike.Battle
         void Update()
         {
             if (!IsAlive || battle.Phase != BattlePhase.Fighting) return;
+            if (IsRobot)
+            {
+                RobotUpdate();
+                return;
+            }
             float dt = Time.deltaTime;
             TickAbilities(dt);
 
@@ -470,9 +550,50 @@ namespace RougeLike.Battle
             if (!IsAlive) Die(dir * knock);
         }
 
+        /// <summary>Robot targeting: the brain drives at the nearest enemy; a robot stuck upside down gets counted out.</summary>
+        void RobotUpdate()
+        {
+            TickAbilities(Time.deltaTime);
+            retargetTimer -= Time.deltaTime;
+            if (target == null || !target.IsAlive || retargetTimer <= 0f)
+            {
+                target = battle.NearestEnemy(this);
+                retargetTimer = RetargetInterval;
+            }
+            brain.SetTarget(target != null ? target.transform : null);
+            stuckFor = drive.Stuck ? stuckFor + Time.deltaTime : 0f;
+            if (stuckFor > CountOut) Kill();
+        }
+
+        /// <summary>Damage without a shove, for robot weapons and rams that push with physics themselves.</summary>
+        public void Damage(float damage, Vector3 point, float knock)
+        {
+            if (!IsAlive) return;
+            Unit.TakeDamage(damage);
+            bar.Set(Unit.CurrentHealth / Mathf.Max(1f, Unit.Stats.Get(StatType.MaxHealth)));
+            battle.OnHit(point, knock, Team);
+            if (!IsAlive) Die(Vector3.zero);
+        }
+
+        /// <summary>Robots hurt each other by ramming: the harder the crash, the more damage each takes.</summary>
+        void OnCollisionEnter(Collision c)
+        {
+            if (!IsRobot || !IsAlive || !Fighting || c.rigidbody == null) return;
+            if (!c.rigidbody.TryGetComponent<BattleUnit>(out var other) || other.Team == Team) return;
+            float dv = c.impulse.magnitude / body.mass;
+            if (dv < RamThreshold) return;
+            Damage((dv - RamThreshold) * RamDamage, c.contactCount > 0 ? c.GetContact(0).point : transform.position, dv);
+        }
+
         void Die(Vector3 push)
         {
             pendingHit = null;
+            if (IsRobot)
+            {
+                // A wreck: no steering, and the wheels stop (some may fly off below).
+                brain.enabled = false;
+                drive.enabled = false;
+            }
             overlay.gameObject.SetActive(false);
             box.material = Grippy;
             body.angularDamping = 0.5f;
@@ -536,6 +657,11 @@ namespace RougeLike.Battle
         void FixedUpdate()
         {
             if (body.isKinematic || !IsAlive) return;
+            if (IsRobot)
+            {
+                if (transform.position.y < -3f) Kill(); // off the edge or down a pit
+                return;
+            }
             if (transform.position.y < -3f) { Kill(); return; } // knocked off the edge
             float dt = Time.fixedDeltaTime;
 

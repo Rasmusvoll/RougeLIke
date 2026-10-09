@@ -20,10 +20,18 @@ namespace RougeLike.Robots
         public float caution = 0.35f;
 
         public int Team { get; set; }
-        public RobotDrive Target { get; private set; }
+        public Transform Target { get; private set; }
 
         RobotDrive drive;
         float retargetTimer, reverseTimer, stallTime, reverseSteer;
+        bool externalTarget;
+
+        /// <summary>Lets whoever runs the fight pick the target (the battle does); the brain then stops picking its own.</summary>
+        public void SetTarget(Transform target)
+        {
+            externalTarget = true;
+            Target = target;
+        }
 
         /// <summary>Every robot in the fight, set by whoever runs it. Enemies are those on another team.</summary>
         public IReadOnlyList<RobotBrain> Others { get; set; }
@@ -39,9 +47,10 @@ namespace RougeLike.Robots
             }
 
             retargetTimer -= Time.fixedDeltaTime;
-            if (retargetTimer <= 0f || Target == null || !Alive(Target))
+            if (!externalTarget && (retargetTimer <= 0f || Target == null || !Alive(Target.GetComponent<RobotDrive>())))
             {
-                Target = Nearest();
+                var nearest = Nearest();
+                Target = nearest != null ? nearest.transform : null;
                 retargetTimer = 1f;
             }
 
@@ -65,7 +74,7 @@ namespace RougeLike.Robots
                 return;
             }
 
-            var targetPos = Flat(Target.transform.position);
+            var targetPos = Flat(Target.position);
             var aim = targetPos;
             float dist = Vector3.Distance(pos, targetPos);
             if (dist > chargeRange)

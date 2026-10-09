@@ -86,8 +86,12 @@ namespace RougeLike.Builder
             model = bp != null ? UnitAssembler.SpawnVisual(bp, db, pivot) : null;
             animator = model != null ? model.GetComponent<UnitAnimator>() : null;
             if (model == null) { shownBlueprint = null; return; }
-            animator.UnscaledTime = true;
-            ShowOffNewParts(bp);
+            // Robots have no animator; their weapons idle on their own.
+            if (animator != null)
+            {
+                animator.UnscaledTime = true;
+                ShowOffNewParts(bp);
+            }
 
             var body = db.GetBody(bp.bodyId);
             foreach (var slot in body.slots)

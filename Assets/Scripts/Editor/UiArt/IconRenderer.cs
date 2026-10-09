@@ -51,7 +51,7 @@ namespace RougeLike.EditorTools
             return list;
         }
 
-        static bool Assign(ContentDefinition def, Texture2D tex, string folder)
+        public static bool Assign(ContentDefinition def, Texture2D tex, string folder)
         {
             if (tex == null) return false;
             var path = $"{IconsFolder}/{folder}/{def.name}.png";
