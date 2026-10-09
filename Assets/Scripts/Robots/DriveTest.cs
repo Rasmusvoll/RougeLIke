@@ -146,7 +146,13 @@ namespace RougeLike.Robots
         {
             foreach (var b in bots)
             {
-                if (b.isOut || b.drive == null) continue;
+                if (b.drive == null) continue;
+                if (b.isOut)
+                {
+                    // Wreckage that's later shoved off the edge is hidden too, not left falling forever.
+                    if (b.drive.transform.position.y < fallHeight) b.drive.gameObject.SetActive(false);
+                    continue;
+                }
                 b.stuckTime = b.drive.Stuck ? b.stuckTime + Time.deltaTime : 0f;
                 string why = b.drive.transform.position.y < fallHeight ? "fell off"
                            : b.stuckTime > stuckOutTime ? "is stuck on its back"

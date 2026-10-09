@@ -36,7 +36,7 @@ namespace RougeLike.Robots
         public IReadOnlyList<RobotWheel> Wheels => wheels;
         public int GroundedWheels { get; private set; }
         public float Speed => Vector3.Dot(Body.linearVelocity, transform.forward);
-        /// <summary>On its back or side with no wheel touching for a while: can't drive any more.</summary>
+        /// <summary>On its back or side and not moving for a while: can't drive any more.</summary>
         public bool Stuck => stuckTime > 1.5f;
 
         readonly List<RobotWheel> wheels = new();
@@ -101,7 +101,8 @@ namespace RougeLike.Robots
             }
 
             bool upright = Vector3.Dot(transform.up, Vector3.up) > 0.35f;
-            stuckTime = grounded == 0 && !upright && Body.linearVelocity.sqrMagnitude < 1f ? stuckTime + dt : 0f;
+            // Not "no wheel grounded": a wheel of a robot on its back can still touch whatever lies on it.
+            stuckTime = !upright &&Body.linearVelocity.sqrMagnitude < 1f ? stuckTime + dt : 0f;
         }
     }
 }

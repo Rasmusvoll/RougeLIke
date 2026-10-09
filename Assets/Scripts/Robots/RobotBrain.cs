@@ -23,7 +23,7 @@ namespace RougeLike.Robots
         public RobotDrive Target { get; private set; }
 
         RobotDrive drive;
-        float retargetTimer, reverseTimer;
+        float retargetTimer, reverseTimer, stallTime, reverseSteer;
 
         /// <summary>Every robot in the fight, set by whoever runs it. Enemies are those on another team.</summary>
         public IReadOnlyList<RobotBrain> Others { get; set; }
@@ -53,7 +53,8 @@ namespace RougeLike.Robots
             {
                 reverseTimer -= Time.fixedDeltaTime;
                 drive.Throttle = -1f;
-                drive.Steer = SteerToward(fwd, -pos) * 0.8f; // swing the nose back toward the middle
+                // Swing the nose back toward the middle, or the chosen way when backing out of a stall.
+                drive.Steer = reverseSteer != 0f ? reverseSteer : SteerToward(fwd, -pos) * 0.8f;
                 return;
             }
 
@@ -88,8 +89,21 @@ namespace RougeLike.Robots
             if (!GroundAt(transform.position + fwd * look) && !shoving)
             {
                 reverseTimer = 0.6f;
+                reverseSteer = 0f;
                 drive.Throttle = -1f;
                 drive.Steer = 0f;
+                return;
+            }
+
+            // Pinned against a stump or rock (or a pushing match gone nowhere): back out at an angle.
+            stallTime = throttle > 0.5f && Mathf.Abs(drive.Speed) < 0.3f ? stallTime + Time.fixedDeltaTime : 0f;
+            if (stallTime > (shoving ? 3f : 1f))
+            {
+                stallTime = 0f;
+                reverseTimer = 0.8f;
+                reverseSteer = Random.value < 0.5f ? -1f : 1f;
+                drive.Throttle = -1f;
+                drive.Steer = reverseSteer;
                 return;
             }
 
@@ -115,7 +129,9 @@ namespace RougeLike.Robots
             return best;
         }
 
-        static bool Alive(RobotDrive r) => r != null && r.isActiveAndEnabled && r.transform.position.y > -1.5f;
+        // A robot whose brain was switched off has been knocked out: wreckage, not a target.
+        static bool Alive(RobotDrive r) => r != null && r.isActiveAndEnabled && r.transform.position.y > -1.5f
+                                           && (!r.TryGetComponent(out RobotBrain b) || b.enabled);
 
         static readonly RaycastHit[] Hits = new RaycastHit[8];
 
